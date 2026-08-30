@@ -6,7 +6,9 @@
     }
   },
   "rewrites": [
-    { "source": "/api/:path*", "destination": "/api" },
+    { "source": "/api/:path*", "destination": "/api" }
+  ],
+  "redirects": [
     { "source": "/", "destination": "/prototype-v3.html" }
   ]
 }
