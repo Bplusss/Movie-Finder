@@ -17,3 +17,11 @@ pipeline/test-results/feedback-log.json
 
 # Tests et fixtures — inutiles en production
 pipeline/test-fixtures/
+
+# Maquette d'origine (jamais modifiee, jamais destinee a la production) —
+# exclue de CE deploiement uniquement pour eviter que Vercel la serve
+# statiquement a la place de prototype-v3.html (les fichiers statiques
+# existants sont prioritaires sur les regles de routage de vercel.json).
+# Le fichier reste intact dans le depot et en local.
+index.html
+movie-finder.html
