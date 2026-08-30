@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Movie Finder — Prototype V3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0d0b09; --bg-elev:#181410; --bg-elev-2:#211b15; --stroke:#332b22;
+    --text:#f3eee6; --text-dim:#b6ac9d; --text-faint:#847a6c;
+    --gold:#c9a227; --gold-soft:#e6c65c; --crimson:#9c2b3b; --crimson-soft:#c04759;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;}
+  body{min-height:100vh;-webkit-font-smoothing:antialiased;}
+  h1,h2,h3,.display{font-family:'Fraunces',serif;}
+  ::selection{background:var(--gold);color:#000;}
+  a{color:inherit;}
+  button{font-family:inherit;cursor:pointer;}
+  #app{max-width:900px;margin:0 auto;padding:0 20px 80px;}
+
+  .nav{display:flex;align-items:center;justify-content:space-between;padding:22px 0 18px;border-bottom:1px solid var(--stroke);margin-bottom:36px;position:sticky;top:0;background:linear-gradient(var(--bg) 85%, transparent);z-index:20;}
+  .brand{font-family:'Fraunces',serif;font-weight:700;font-size:20px;letter-spacing:0.5px;display:flex;align-items:center;gap:8px;}
+  .brand .dot{width:8px;height:8px;border-radius:50%;background:var(--gold);box-shadow:0 0 8px var(--gold);}
+  .navlinks{display:flex;gap:6px;align-items:center;}
+  .navlinks span{color:var(--text-faint);font-size:12px;}
+  .dev-toggle{background:none;border:1px solid var(--stroke);color:var(--text-faint);font-size:11px;padding:5px 10px;border-radius:999px;}
+  .dev-toggle.active{border-color:var(--gold);color:var(--gold-soft);}
+
+  .hero{text-align:center;padding:20px 0 30px;}
+  .hero h1{font-size:clamp(24px,4.5vw,36px);font-weight:600;margin:0 0 10px;line-height:1.15;}
+  .hero .sub{color:var(--text-dim);font-size:15px;margin:0 0 34px;}
+
+  .search-wrap{background:var(--bg-elev);border:1px solid var(--stroke);border-radius:20px;padding:8px;max-width:640px;margin:0 auto 16px;display:flex;gap:8px;box-shadow:0 20px 60px -30px rgba(0,0,0,.6);}
+  .search-wrap textarea{flex:1;resize:none;background:transparent;border:none;color:var(--text);font-size:15px;padding:14px 8px 14px 16px;font-family:'Inter',sans-serif;outline:none;min-height:26px;max-height:120px;line-height:1.4;}
+  .search-wrap textarea::placeholder{color:var(--text-faint);}
+  .btn-find{background:var(--gold);color:#1a1204;border:none;border-radius:14px;padding:0 22px;font-weight:600;font-size:14px;white-space:nowrap;transition:.15s;}
+  .btn-find:hover{background:var(--gold-soft);}
+
+  .understood{max-width:640px;margin:0 auto 20px;text-align:center;}
+  .understood-label{color:var(--text-faint);font-size:12px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;}
+  .understood-chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;}
+  .u-chip{background:var(--bg-elev);border:1px solid var(--stroke);border-radius:999px;padding:6px 14px;font-size:13px;color:var(--text);}
+
+  .dev-box{max-width:640px;margin:10px auto 0;background:var(--bg-elev-2);border:1px dashed var(--stroke);border-radius:10px;padding:12px 16px;font-size:11.5px;color:var(--text-faint);font-family:monospace;white-space:pre-wrap;display:none;}
+  .dev-box.show{display:block;}
+
+  .results-head{text-align:center;margin:8px 0 24px;}
+  .results-head h2{font-size:24px;margin:0 0 4px;}
+  .results-head p{color:var(--text-faint);font-size:13.5px;margin:0;}
+
+  .loading{text-align:center;padding:60px 0;color:var(--text-dim);}
+  .spinner{width:34px;height:34px;border-radius:50%;border:3px solid var(--stroke);border-top-color:var(--gold);margin:0 auto 16px;animation:spin 1s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px;}
+  .card{background:var(--bg-elev);border:1px solid var(--stroke);border-radius:var(--radius);overflow:hidden;display:flex;flex-direction:column;position:relative;}
+  .poster{height:150px;display:flex;align-items:center;justify-content:center;font-family:'Fraunces',serif;font-weight:600;font-size:15px;text-align:center;padding:10px;color:rgba(255,255,255,.92);position:relative;}
+  .poster .yr{position:absolute;top:8px;left:10px;font-size:11px;background:rgba(0,0,0,.35);padding:2px 8px;border-radius:999px;}
+  .poster .rt{position:absolute;top:8px;right:10px;font-size:11px;background:rgba(0,0,0,.35);padding:2px 8px;border-radius:999px;}
+  .card-body{padding:16px;display:flex;flex-direction:column;gap:10px;flex:1;}
+  .card-title{font-family:'Fraunces',serif;font-size:17px;font-weight:600;}
+  .genres-row{display:flex;flex-wrap:wrap;gap:5px;}
+  .genre-tag{font-size:10.5px;color:var(--text-dim);border:1px solid var(--stroke);border-radius:999px;padding:2px 8px;}
+  .synopsis{font-size:12.5px;color:var(--text-dim);line-height:1.5;}
+  .why{background:var(--bg-elev-2);border-left:2px solid var(--gold);border-radius:6px;padding:8px 10px;font-size:12.5px;color:var(--text-dim);line-height:1.5;}
+  .why b{color:var(--gold-soft);font-weight:600;display:block;font-size:11px;margin-bottom:3px;letter-spacing:.3px;}
+
+  .dev-card-box{font-size:10.5px;color:var(--text-faint);font-family:monospace;background:var(--bg-elev-2);border-radius:6px;padding:6px 8px;display:none;}
+  .dev-card-box.show{display:block;}
+
+  .fb-status{font-size:11px;color:var(--gold-soft);font-style:italic;min-height:14px;}
+  .btn-watched{background:var(--bg-elev-2);border:1px solid var(--stroke);color:var(--text);border-radius:10px;padding:10px;font-size:13px;font-weight:500;margin-top:4px;}
+  .btn-watched:hover{border-color:var(--gold);}
+
+  .refine{text-align:center;margin-top:32px;}
+  .btn-again{background:var(--bg-elev);border:1px solid var(--stroke);color:var(--text);padding:12px 22px;border-radius:999px;font-size:14px;font-weight:500;transition:.15s;}
+  .btn-again:hover{border-color:var(--crimson);}
+
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:100;padding:20px;}
+  .modal{background:var(--bg-elev);border:1px solid var(--stroke);border-radius:16px;padding:26px;max-width:400px;width:100%;}
+  .modal h3{margin:0 0 4px;font-size:19px;}
+  .modal .mv-title{color:var(--gold-soft);}
+  .modal .q{margin:20px 0 8px;font-size:13.5px;color:var(--text-dim);}
+  .stars-input{display:flex;gap:6px;font-size:26px;}
+  .stars-input span{cursor:pointer;color:var(--stroke);transition:.1s;}
+  .stars-input span.filled{color:var(--gold);}
+  .stars-input.fit span.filled{color:var(--crimson-soft);}
+  .modal-actions{display:flex;gap:10px;margin-top:24px;}
+  .btn-save{flex:1;background:var(--gold);color:#1a1204;border:none;border-radius:10px;padding:11px;font-weight:600;font-size:14px;}
+  .btn-save:disabled{opacity:.4;cursor:default;}
+  .btn-cancel{background:none;border:1px solid var(--stroke);color:var(--text-dim);border-radius:10px;padding:11px 16px;font-size:14px;}
+  .reasons-row{display:none;flex-wrap:wrap;gap:6px;margin-top:10px;}
+  .reasons-row.show{display:flex;}
+  .reason-chip{font-size:11.5px;background:var(--bg-elev-2);border:1px solid var(--stroke);border-radius:999px;padding:5px 11px;color:var(--text-dim);cursor:pointer;}
+  .reason-chip.picked{border-color:var(--crimson-soft);color:var(--crimson-soft);background:rgba(192,71,89,.12);}
+
+  @media (max-width:640px){ .nav{padding:16px 0;} .search-wrap{flex-direction:column;padding:10px;} .btn-find{padding:12px;} }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="nav">
+    <div class="brand"><span class="dot"></span>MOVIE FINDER — V3</div>
+    <div class="navlinks">
+      <span>Prototype de test</span>
+      <button class="dev-toggle" id="devToggle">Mode développeur</button>
+    </div>
+  </div>
+
+  <div class="hero">
+    <h1>Tu sais ce que tu veux regarder.<br>Tu ne sais juste pas quoi.</h1>
+    <p class="sub">Décris ton envie en une phrase — le moteur V3 cherche dans les 1018 films.</p>
+    <div class="search-wrap">
+      <textarea id="searchBox" placeholder="ex: un film qui se passe dans l'espace"></textarea>
+      <button class="btn-find" id="searchBtn">Trouver mon film</button>
+    </div>
+  </div>
+
+  <div id="status" style="text-align:center;color:var(--text-dim);"></div>
+
+  <div class="understood" id="understoodBlock" style="display:none;">
+    <div class="understood-label">J'ai compris</div>
+    <div class="understood-chips" id="understoodChips"></div>
+    <div class="dev-box" id="devBox"></div>
+  </div>
+
+  <div class="results-head" id="resultsHead" style="display:none;">
+    <h2 id="resultsTitle"></h2>
+    <p id="resultsSub"></p>
+  </div>
+  <div class="cards" id="results"></div>
+
+  <div class="refine" id="refineBlock" style="display:none;">
+    <button class="btn-again" id="moreBtn">Voir 3 autres films</button>
+  </div>
+</div>
+
+<div id="modalRoot"></div>
+
+<script src="prototype-v3-helpers.js"></script>
+<script>
+const API = ""; // relatif — meme origine en local (servi par prototype-v3-server.js) et sur Vercel
+const sessionId = "session-" + Math.random().toString(36).slice(2, 10);
+let lastQuery = "";
+let lastData = null;
+let sessionShown = new Set();
+let devMode = false;
+
+let modalFilm = null;
+let starsRel = 0;
+let starsFilm = 0;
+let pickedReasons = new Set();
+
+function colorFor(title) {
+  let hash = 0;
+  for (let i = 0; i < title.length; i++) hash = title.charCodeAt(i) + ((hash << 5) - hash);
+  const h1 = Math.abs(hash) % 360;
+  const h2 = (h1 + 40) % 360;
+  return `linear-gradient(135deg, hsl(${h1},35%,18%), hsl(${h2},45%,32%))`;
+}
+
+function formatRuntime(minutes) {
+  const h = Math.floor(minutes / 60), m = minutes % 60;
+  return `${h}h${m ? m.toString().padStart(2, "0") : ""}`;
+}
+
+function renderUnderstood(data) {
+  const chips = MovieFinderHelpers.buildUnderstoodChips(data);
+  const block = document.getElementById("understoodBlock");
+  if (!chips.length) { block.style.display = "none"; return; }
+  block.style.display = "block";
+  document.getElementById("understoodChips").innerHTML = chips.map(c => `<span class="u-chip">${c}</span>`).join("");
+
+  const devBox = document.getElementById("devBox");
+  devBox.textContent = `famille: ${data.family}\nfiltres bruts: ${JSON.stringify(data.filters)}\nreste sémantique: "${data.semantic_query}"\npool éligible: ${data.pool_size}`;
+  devBox.classList.toggle("show", devMode);
+}
+
+function renderResults(data, isMore) {
+  lastData = data;
+  data.results.forEach(r => sessionShown.add(r.movie.id));
+  renderUnderstood(data);
+  document.getElementById("resultsHead").style.display = "block";
+  document.getElementById("resultsTitle").textContent = `${data.results.length} film(s) proposé(s)`;
+  document.getElementById("resultsSub").textContent = `« ${lastQuery} »`;
+
+  const el = document.getElementById("results");
+  if (!data.results.length) {
+    el.innerHTML = isMore
+      ? "<p style='color:var(--text-faint)'>Plus aucun nouveau film à proposer pour cette recherche.</p>"
+      : "<p style='color:var(--text-faint)'>Aucun résultat.</p>";
+    document.getElementById("refineBlock").style.display = "none";
+    return;
+  }
+
+  el.innerHTML = data.results.map(r => {
+    const m = r.movie;
+    const why = MovieFinderHelpers.explainWhyFriendly(r, data);
+    return `
+      <div class="card" data-film="${m.id}" data-title="${m.title.replace(/"/g,'&quot;')}" data-rank="${m.rank}" data-score="${r.score ?? ''}">
+        <div class="poster" style="background:${colorFor(m.title)}">
+          <span class="yr">${m.year || "—"}</span>
+          ${m.runtimeMinutes ? `<span class="rt">${formatRuntime(m.runtimeMinutes)}</span>` : ""}
+          <span>${m.title}</span>
+        </div>
+        <div class="card-body">
+          <div class="card-title">${m.title}</div>
+          <div class="genres-row">${m.directors.map(d => `<span class="genre-tag">réal. ${d}</span>`).join("")}</div>
+          ${m.actors && m.actors.length ? `<div class="genres-row"><span class="genre-tag">avec ${m.actors.slice(0, 4).join(", ")}</span></div>` : ""}
+          <div class="synopsis">${m.synopsis}</div>
+          <div class="why"><b>Pourquoi ce film ?</b>${why}</div>
+          <div class="dev-card-box ${devMode ? 'show' : ''}">lexical: ${r.detail.lexical ?? '—'} | embedding: ${r.detail.embedding ?? '—'} | position: ${m.rank}</div>
+          <div class="fb-status" id="fb-${m.id}"></div>
+          <button class="btn-watched" data-watched="${m.id}">J'ai vu ce film</button>
+        </div>
+      </div>`;
+  }).join("");
+  document.getElementById("refineBlock").style.display = "block";
+
+  document.querySelectorAll(".btn-watched").forEach(b => b.addEventListener("click", () => openModal(b.dataset.watched)));
+}
+
+function starRow(value, kind) {
+  let html = "";
+  for (let i = 1; i <= 5; i++) html += `<span data-value="${i}" data-kind="${kind}" class="${i <= value ? 'filled' : ''}">★</span>`;
+  return html;
+}
+
+function reasonsChipsHtml() {
+  return MovieFinderHelpers.IRRELEVANCE_REASONS.map(r =>
+    `<span class="reason-chip ${pickedReasons.has(r) ? 'picked' : ''}" data-reason="${r}">${r}</span>`
+  ).join("");
+}
+
+function renderModal() {
+  const root = document.getElementById("modalRoot");
+  if (!modalFilm) { root.innerHTML = ""; return; }
+  root.innerHTML = `
+    <div class="overlay" id="modal-overlay">
+      <div class="modal">
+        <h3>Tu as vu <span class="mv-title">${modalFilm.title}</span></h3>
+        <div class="q">Est-ce qu'il correspondait à ta recherche ?</div>
+        <div class="stars-input fit" id="stars-rel">${starRow(starsRel, "rel")}</div>
+        <div class="reasons-row ${starsRel > 0 && starsRel <= 2 ? 'show' : ''}" id="reasonsRow">${reasonsChipsHtml()}</div>
+        <div class="q">Recommanderais-tu ce film ?</div>
+        <div class="stars-input" id="stars-film">${starRow(starsFilm, "film")}</div>
+        <div class="modal-actions">
+          <button class="btn-cancel" id="modal-cancel">Annuler</button>
+          <button class="btn-save" id="modal-save" ${(!starsRel && !starsFilm) ? "disabled" : ""}>Enregistrer</button>
+        </div>
+      </div>
+    </div>`;
+
+  root.querySelectorAll(".stars-input span").forEach(s => s.addEventListener("click", e => {
+    const val = parseInt(e.target.dataset.value), kind = e.target.dataset.kind;
+    if (kind === "rel") starsRel = val; else starsFilm = val;
+    renderModal();
+  }));
+  root.querySelectorAll(".reason-chip").forEach(c => c.addEventListener("click", e => {
+    const r = e.target.dataset.reason;
+    if (pickedReasons.has(r)) pickedReasons.delete(r); else pickedReasons.add(r);
+    renderModal();
+  }));
+  document.getElementById("modal-cancel").addEventListener("click", closeModal);
+  document.getElementById("modal-save").addEventListener("click", saveModal);
+}
+
+function openModal(filmId) {
+  const card = document.querySelector(`.card[data-film="${filmId}"]`);
+  modalFilm = { id: filmId, title: card.dataset.title, rank: parseInt(card.dataset.rank), score: card.dataset.score ? parseInt(card.dataset.score) : null };
+  starsRel = 0; starsFilm = 0; pickedReasons = new Set();
+  renderModal();
+}
+function closeModal() { modalFilm = null; starsRel = 0; starsFilm = 0; pickedReasons = new Set(); renderModal(); }
+
+async function saveModal() {
+  const body = {
+    query: lastQuery, filmId: modalFilm.id, filmTitle: modalFilm.title,
+    position: modalFilm.rank, score: modalFilm.score,
+    relevanceRating: starsRel || null, filmRating: starsFilm || null,
+    irrelevanceReasons: pickedReasons.size ? [...pickedReasons] : null,
+    sessionId,
+  };
+  const fbEl = document.getElementById("fb-" + modalFilm.id);
+  try {
+    const resp = await fetch(API + "/api/feedback", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify(body) });
+    const data = await resp.json();
+    if (fbEl) fbEl.textContent = resp.ok ? "Merci, note enregistrée." : "Erreur : " + data.error;
+  } catch (e) { if (fbEl) fbEl.textContent = "Erreur réseau : " + e.message; }
+  closeModal();
+}
+
+async function doSearch() {
+  const q = document.getElementById("searchBox").value.trim();
+  if (!q) return;
+  lastQuery = q;
+  sessionShown = new Set();
+  await runSearch([], false);
+}
+async function doMore() {
+  if (!lastQuery) return;
+  await runSearch([...sessionShown], true);
+}
+async function runSearch(excludeIds, isMore) {
+  document.getElementById("status").innerHTML = `<div class="loading"><div class="spinner"></div>Recherche en cours…</div>`;
+  if (!isMore) document.getElementById("results").innerHTML = "";
+  try {
+    const resp = await fetch(API + "/api/search", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ query: lastQuery, excludeIds }) });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || "erreur serveur");
+    document.getElementById("status").innerHTML = "";
+    renderResults(data, isMore);
+  } catch (e) {
+    document.getElementById("status").innerHTML = `<p>Erreur : ${e.message} (le serveur prototype tourne-t-il sur le port 3003 ?)</p>`;
+  }
+}
+
+document.getElementById("searchBtn").addEventListener("click", doSearch);
+document.getElementById("searchBox").addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); doSearch(); } });
+document.getElementById("moreBtn").addEventListener("click", doMore);
+document.getElementById("devToggle").addEventListener("click", () => {
+  devMode = !devMode;
+  document.getElementById("devToggle").classList.toggle("active", devMode);
+  document.getElementById("devBox").classList.toggle("show", devMode);
+  document.querySelectorAll(".dev-card-box").forEach(el => el.classList.toggle("show", devMode));
+});
+</script>
+</body>
+</html>

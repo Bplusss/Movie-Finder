@@ -1,0 +1,30 @@
+# Secrets — ne jamais committer
+.env
+.env.local
+.env.*.local
+
+# Dépendances
+node_modules/
+
+# Artefacts locaux du pipeline (reprise/checkpoint, exports intermédiaires)
+pipeline/.checkpoint-*.json
+pipeline/output-*.jsonl
+
+# Fichiers volumineux DBpedia téléchargés localement (jamais commités)
+dbpedia/downloads/
+dbpedia/config.json
+dbpedia/report.json
+
+# Résultats de tests locaux (contient potentiellement du texte Wikipédia)
+# EXCEPTION : les 4 fichiers reellement necessaires au catalogue de production
+# (voir server/prototype-v3-server.js) doivent etre commites pour que le
+# deploiement Vercel via Git les recupere. Tout le reste du dossier reste ignore.
+pipeline/test-results/*
+!pipeline/test-results/semantic-enrichment-1018-final.json
+!pipeline/test-results/wikipedia-synopsis-1018.json
+!pipeline/test-results/embeddings-cache-v2-synopsis.json
+!pipeline/test-results/embeddings-cache-v2-intro.json
+
+# Divers
+.DS_Store
+npm-debug.log*

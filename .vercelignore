@@ -1,0 +1,19 @@
+# .vercelignore
+# Filet de securite specifique a Vercel : une deploiement via CLI directe
+# (pas via l'integration Git) IGNORE le .gitignore par defaut. Ce fichier
+# garantit que .env n'est jamais envoye, meme dans ce cas.
+.env
+.env.local
+.env.*.local
+
+# Artefacts de developpement local, jamais necessaires en production
+pipeline/.checkpoint-*.json
+pipeline/output-*.jsonl
+dbpedia/
+
+# Feedback local historique : deja migre vers Supabase, ne doit pas etre
+# redeploye publiquement (contient des sessions/requetes utilisateur).
+pipeline/test-results/feedback-log.json
+
+# Tests et fixtures — inutiles en production
+pipeline/test-fixtures/

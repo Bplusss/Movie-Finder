@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Movie Finder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0d0b09;
+    --bg-elev:#181410;
+    --bg-elev-2:#211b15;
+    --stroke:#332b22;
+    --text:#f3eee6;
+    --text-dim:#b6ac9d;
+    --text-faint:#847a6c;
+    --gold:#c9a227;
+    --gold-soft:#e6c65c;
+    --crimson:#9c2b3b;
+    --crimson-soft:#c04759;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;}
+  body{min-height:100vh;-webkit-font-smoothing:antialiased;}
+  h1,h2,h3,.display{font-family:'Fraunces',serif;}
+  ::selection{background:var(--gold);color:#000;}
+  a{color:inherit;}
+  button{font-family:inherit;cursor:pointer;}
+  #app{max-width:900px;margin:0 auto;padding:0 20px 80px;}
+
+  /* NAV */
+  .nav{display:flex;align-items:center;justify-content:space-between;padding:22px 0 18px;border-bottom:1px solid var(--stroke);margin-bottom:36px;position:sticky;top:0;background:linear-gradient(var(--bg) 85%, transparent);z-index:20;}
+  .brand{font-family:'Fraunces',serif;font-weight:700;font-size:20px;letter-spacing:0.5px;display:flex;align-items:center;gap:8px;cursor:pointer;}
+  .brand .dot{width:8px;height:8px;border-radius:50%;background:var(--gold);box-shadow:0 0 8px var(--gold);}
+  .navlinks{display:flex;gap:6px;}
+  .navlinks button{background:none;border:none;color:var(--text-dim);font-size:14px;padding:8px 14px;border-radius:999px;transition:.15s;}
+  .navlinks button.active,.navlinks button:hover{background:var(--bg-elev);color:var(--text);}
+
+  /* HERO */
+  .hero{text-align:center;padding:20px 0 30px;}
+  .hero h1{font-size:clamp(26px,5vw,40px);font-weight:600;margin:0 0 10px;line-height:1.15;}
+  .hero .sub{color:var(--text-dim);font-size:16px;margin:0 0 34px;}
+
+  .search-wrap{background:var(--bg-elev);border:1px solid var(--stroke);border-radius:20px;padding:8px;max-width:640px;margin:0 auto 16px;display:flex;gap:8px;box-shadow:0 20px 60px -30px rgba(0,0,0,.6);}
+  .search-wrap textarea{flex:1;resize:none;background:transparent;border:none;color:var(--text);font-size:15px;padding:14px 8px 14px 16px;font-family:'Inter',sans-serif;outline:none;min-height:26px;max-height:120px;line-height:1.4;}
+  .search-wrap textarea::placeholder{color:var(--text-faint);}
+  .btn-find{background:var(--gold);color:#1a1204;border:none;border-radius:14px;padding:0 22px;font-weight:600;font-size:14px;white-space:nowrap;transition:.15s;}
+  .btn-find:hover{background:var(--gold-soft);}
+  .btn-find:disabled{opacity:.5;cursor:default;}
+
+  .chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:640px;margin:0 auto;}
+  .chip{background:var(--bg-elev);border:1px solid var(--stroke);color:var(--text-dim);padding:8px 14px;border-radius:999px;font-size:13px;transition:.15s;}
+  .chip:hover{border-color:var(--gold);color:var(--text);}
+
+  .criteria-toggle{text-align:center;margin-top:18px;}
+  .criteria-toggle button{background:none;border:none;color:var(--text-faint);font-size:12.5px;text-decoration:underline;text-underline-offset:3px;}
+  .criteria-box{max-width:640px;margin:10px auto 0;background:var(--bg-elev);border:1px solid var(--stroke);border-radius:10px;padding:12px 16px;font-size:12.5px;color:var(--text-dim);display:flex;flex-wrap:wrap;gap:6px;}
+  .tag-pill{background:var(--bg-elev-2);border:1px solid var(--stroke);border-radius:999px;padding:3px 10px;font-size:11.5px;color:var(--gold-soft);}
+
+  .ad{max-width:640px;margin:26px auto;border:1px dashed var(--stroke);border-radius:12px;padding:16px;text-align:center;color:var(--text-faint);font-size:11px;letter-spacing:2px;font-weight:600;}
+
+  /* RESULTS */
+  .results-head{text-align:center;margin:8px 0 24px;}
+  .results-head h2{font-size:24px;margin:0 0 4px;}
+  .results-head p{color:var(--text-faint);font-size:13.5px;margin:0;}
+
+  .loading{text-align:center;padding:60px 0;color:var(--text-dim);}
+  .spinner{width:34px;height:34px;border-radius:50%;border:3px solid var(--stroke);border-top-color:var(--gold);margin:0 auto 16px;animation:spin 1s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px;}
+  .card{background:var(--bg-elev);border:1px solid var(--stroke);border-radius:var(--radius);overflow:hidden;display:flex;flex-direction:column;position:relative;}
+  .card.watched{opacity:.55;}
+  .poster{height:150px;display:flex;align-items:center;justify-content:center;font-family:'Fraunces',serif;font-weight:600;font-size:15px;text-align:center;padding:10px;color:rgba(255,255,255,.92);position:relative;}
+  .poster .yr{position:absolute;top:8px;left:10px;font-size:11px;background:rgba(0,0,0,.35);padding:2px 8px;border-radius:999px;}
+  .poster .rt{position:absolute;top:8px;right:10px;font-size:11px;background:rgba(0,0,0,.35);padding:2px 8px;border-radius:999px;}
+  .card-body{padding:16px;display:flex;flex-direction:column;gap:10px;flex:1;}
+  .card-title{font-family:'Fraunces',serif;font-size:17px;font-weight:600;}
+  .genres-row{display:flex;flex-wrap:wrap;gap:5px;}
+  .genre-tag{font-size:10.5px;color:var(--text-dim);border:1px solid var(--stroke);border-radius:999px;padding:2px 8px;}
+  .synopsis{font-size:12.5px;color:var(--text-dim);line-height:1.5;}
+  .why{background:var(--bg-elev-2);border-left:2px solid var(--gold);border-radius:6px;padding:8px 10px;font-size:12px;color:var(--text-dim);}
+  .why b{color:var(--gold-soft);font-weight:600;display:block;font-size:11px;margin-bottom:3px;letter-spacing:.3px;}
+  .meta-row{display:flex;align-items:center;justify-content:space-between;font-size:12px;color:var(--text-faint);}
+  .quality-stars{color:var(--gold);}
+  .like-pct{color:var(--crimson-soft);}
+  .avail-row{display:flex;flex-wrap:wrap;gap:5px;}
+  .avail-badge{font-size:10px;border:1px solid var(--stroke);border-radius:5px;padding:2px 6px;color:var(--text-faint);}
+  .avail-note{font-size:9.5px;color:var(--text-faint);font-style:italic;}
+  .btn-watched{margin-top:auto;background:none;border:1px solid var(--stroke);color:var(--text-dim);border-radius:999px;padding:9px;font-size:12.5px;transition:.15s;}
+  .btn-watched:hover{border-color:var(--gold);color:var(--text);}
+  .badge-done{position:absolute;top:10px;right:10px;background:var(--crimson);color:#fff;font-size:10.5px;padding:3px 9px;border-radius:999px;z-index:2;}
+  .badge-live{position:absolute;top:10px;left:10px;background:var(--gold);color:#1a1204;font-size:10px;font-weight:700;padding:3px 8px;border-radius:999px;z-index:2;}
+
+  .refine{text-align:center;margin-top:32px;}
+  .refine p{color:var(--text-faint);font-size:14px;margin:0 0 12px;}
+  .btn-again{background:var(--bg-elev);border:1px solid var(--stroke);color:var(--text);padding:12px 22px;border-radius:999px;font-size:14px;font-weight:500;transition:.15s;}
+  .btn-again:hover{border-color:var(--crimson);}
+  .btn-newsearch{background:none;border:none;color:var(--text-faint);font-size:12.5px;margin-top:14px;text-decoration:underline;text-underline-offset:3px;}
+
+  /* MODAL */
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:100;padding:20px;}
+  .modal{background:var(--bg-elev);border:1px solid var(--stroke);border-radius:16px;padding:26px;max-width:400px;width:100%;}
+  .modal h3{margin:0 0 4px;font-size:19px;}
+  .modal .mv-title{color:var(--gold-soft);}
+  .modal .q{margin:20px 0 8px;font-size:13.5px;color:var(--text-dim);}
+  .stars-input{display:flex;gap:6px;font-size:26px;}
+  .stars-input span{cursor:pointer;color:var(--stroke);transition:.1s;}
+  .stars-input span.filled{color:var(--gold);}
+  .stars-input.fit span.filled{color:var(--crimson-soft);}
+  .modal-actions{display:flex;gap:10px;margin-top:24px;}
+  .btn-save{flex:1;background:var(--gold);color:#1a1204;border:none;border-radius:10px;padding:11px;font-weight:600;font-size:14px;}
+  .btn-cancel{background:none;border:1px solid var(--stroke);color:var(--text-dim);border-radius:10px;padding:11px 16px;font-size:14px;}
+
+  /* HISTORY */
+  .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:30px;}
+  .stat-box{background:var(--bg-elev);border:1px solid var(--stroke);border-radius:12px;padding:16px;text-align:center;}
+  .stat-box .num{font-family:'Fraunces',serif;font-size:26px;font-weight:700;color:var(--gold-soft);}
+  .stat-box .lbl{font-size:11px;color:var(--text-faint);margin-top:4px;text-transform:uppercase;letter-spacing:.5px;}
+  .hist-row{display:flex;gap:14px;background:var(--bg-elev);border:1px solid var(--stroke);border-radius:12px;padding:14px;margin-bottom:10px;align-items:center;}
+  .hist-poster{width:52px;height:70px;border-radius:6px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-family:'Fraunces',serif;font-size:11px;font-weight:600;text-align:center;padding:4px;}
+  .hist-info{flex:1;}
+  .hist-title{font-family:'Fraunces',serif;font-size:15px;font-weight:600;}
+  .hist-date{font-size:11.5px;color:var(--text-faint);margin-top:2px;}
+  .hist-ratings{display:flex;gap:16px;margin-top:6px;font-size:12px;}
+  .hist-ratings .lbl{color:var(--text-faint);display:block;font-size:10px;}
+  .empty-state{text-align:center;padding:60px 20px;color:var(--text-faint);}
+  .empty-state .display{font-size:20px;color:var(--text-dim);margin-bottom:8px;}
+
+  @media (max-width:640px){
+    .nav{padding:16px 0;}
+    .search-wrap{flex-direction:column;padding:10px;}
+    .btn-find{padding:12px;}
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+/* =========================================================================
+   MOVIE FINDER — PROTOTYPE FONCTIONNEL
+   Toutes les données films sont MOCKÉES (voir DATA_SOURCES.md fourni à part
+   pour l'architecture d'import Wikidata/DBpedia envisagée en production).
+   La disponibilité plateforme est SIMULÉE.
+   ========================================================================= */
+
+/* ---------- 1. CONFIG DE SCORING (facilement modifiable) ---------- */
+const WEIGHTS = {
+  SEARCH_MATCH_WEIGHT: 40,
+  SEARCH_FIT_WEIGHT: 25,
+  QUALITY_WEIGHT: 15,
+  PERSONALIZATION_WEIGHT: 15,
+  POPULARITY_WEIGHT: 5,
+};
+
+/* ---------- 2. BASE DE FILMS (sous-ensemble mocké) ---------- */
+// genres possibles: comedy, action, thriller, scifi, romance, drama, crime, adventure, musical
+// moods possibles: funny, light, dark, feelgood, intense, cerebral, romantic, tense, uplifting, absurd
+// good_for: couple, friends, family, solo, evening
+const MOVIES = [
+{id:"m1",wikidata_id:"Q3346768",title:"Le Prénom",original_title:"Le Prénom",year:2012,runtime:109,country:"France",languages:["fr"],genres:["comedy"],director:"Alexandre de La Patellière",actors:["Patrick Bruel","Valérie Benguigui","Charles Berling"],synopsis:"Un dîner entre amis dérape lorsqu'un futur père révèle le prénom qu'il a choisi pour son fils.",moods:["funny","light"],intensity:3,humor:8,romance:2,action:0,violence:0,complexity:3,feel_good:7,good_for:["friends","couple"],tags:["huis clos","comédie de mœurs"],color:"linear-gradient(135deg,#7a4b1a,#c9a227)"},
+{id:"m2",wikidata_id:"Q1145606",title:"La Cité de la peur",year:1994,runtime:92,country:"France",languages:["fr"],genres:["comedy"],director:"Alain Berbérian",actors:["Les Nuls"],synopsis:"Un serial killer sévit pendant le Festival de Cannes, au grand dam d'une équipe de tournage complètement à côté de la plaque.",moods:["funny","absurd","light"],intensity:2,humor:10,romance:0,action:1,violence:1,complexity:1,feel_good:8,good_for:["friends"],tags:["parodie","cannes"],color:"linear-gradient(135deg,#8a2a2a,#c9a227)"},
+{id:"m3",wikidata_id:"Q1143073",title:"OSS 117 : Le Caire, nid d'espions",year:2006,runtime:99,country:"France",languages:["fr"],genres:["comedy","action"],director:"Michel Hazanavicius",actors:["Jean Dujardin","Bérénice Bejo"],synopsis:"Un agent secret français maladroit et suffisant est envoyé au Caire pour retrouver un contact disparu.",moods:["funny","light","absurd"],intensity:4,humor:9,romance:2,action:5,violence:2,complexity:2,feel_good:7,good_for:["friends","couple"],tags:["espionnage","parodie"],color:"linear-gradient(135deg,#b5892b,#5c3b0e)"},
+{id:"m4",wikidata_id:"Q660622",title:"Intouchables",year:2011,runtime:112,country:"France",languages:["fr"],genres:["comedy","drama"],director:"Olivier Nakache",actors:["François Cluzet","Omar Sy"],synopsis:"Un riche tétraplégique engage un jeune homme de banlieue comme aide de vie, donnant naissance à une amitié improbable.",moods:["funny","feelgood","light"],intensity:3,humor:7,romance:1,action:0,violence:0,complexity:2,feel_good:9,good_for:["family","friends","solo"],tags:["amitié","handicap"],color:"linear-gradient(135deg,#1a3a2e,#c9a227)"},
+{id:"m5",wikidata_id:"Q2851888",title:"Qu'est-ce qu'on a fait au Bon Dieu ?",year:2014,runtime:97,country:"France",languages:["fr"],genres:["comedy"],director:"Philippe de Chauveron",actors:["Christian Clavier","Chantal Lauby"],synopsis:"Un couple catholique traditionaliste voit ses filles épouser des hommes d'origines et de religions différentes.",moods:["funny","light"],intensity:2,humor:8,romance:2,action:0,violence:0,complexity:2,feel_good:7,good_for:["family","friends"],tags:["famille","comédie sociale"],color:"linear-gradient(135deg,#2b4a6b,#c9a227)"},
+{id:"m6",wikidata_id:"Q102235",title:"Gladiator",year:2000,runtime:155,country:"USA",languages:["en"],genres:["action","drama"],director:"Ridley Scott",actors:["Russell Crowe","Joaquin Phoenix"],synopsis:"Un général romain trahi est réduit en esclavage et devient gladiateur pour se venger de l'empereur qui a tué sa famille.",moods:["intense","dark"],intensity:8,humor:1,romance:1,action:8,violence:7,complexity:4,feel_good:3,good_for:["evening","solo"],tags:["rome antique","vengeance"],color:"linear-gradient(135deg,#4a1010,#8a1a1a)"},
+{id:"m7",wikidata_id:"Q844656",title:"Master and Commander",year:2003,runtime:138,country:"USA",languages:["en"],genres:["action","adventure"],director:"Peter Weir",actors:["Russell Crowe","Paul Bettany"],synopsis:"Le capitaine d'un navire de guerre britannique poursuit un corsaire français pendant les guerres napoléoniennes.",moods:["intense"],intensity:6,humor:2,romance:0,action:6,violence:5,complexity:4,feel_good:4,good_for:["evening","solo"],tags:["marine","guerres napoléoniennes"],color:"linear-gradient(135deg,#123049,#2c5a7a)"},
+{id:"m8",wikidata_id:"Q844707",title:"American Gangster",year:2007,runtime:157,country:"USA",languages:["en"],genres:["thriller","crime"],director:"Ridley Scott",actors:["Russell Crowe","Denzel Washington"],synopsis:"L'ascension d'un baron de la drogue à Harlem et l'inspecteur incorruptible qui traque son empire.",moods:["dark","tense","cerebral"],intensity:7,humor:1,romance:1,action:4,violence:6,complexity:5,feel_good:2,good_for:["evening","solo"],tags:["crime organisé","new york"],color:"linear-gradient(135deg,#241c14,#5c3b0e)"},
+{id:"m9",wikidata_id:"Q104123",title:"Seven",year:1995,runtime:127,country:"USA",languages:["en"],genres:["thriller","crime"],director:"David Fincher",actors:["Brad Pitt","Morgan Freeman"],synopsis:"Deux détectives traquent un tueur en série qui punit ses victimes selon les sept péchés capitaux.",moods:["dark","tense","cerebral"],intensity:9,humor:0,romance:0,action:2,violence:8,complexity:6,feel_good:0,good_for:["evening","solo"],tags:["tueur en série","enquête"],color:"linear-gradient(135deg,#181818,#3a3a1a)"},
+{id:"m10",wikidata_id:"Q503047",title:"Prisoners",year:2013,runtime:153,country:"USA",languages:["en"],genres:["thriller","drama"],director:"Denis Villeneuve",actors:["Hugh Jackman","Jake Gyllenhaal"],synopsis:"Un père prend les choses en main quand la police échoue à retrouver sa fille disparue et son amie.",moods:["dark","tense","cerebral"],intensity:8,humor:0,romance:0,action:2,violence:6,complexity:7,feel_good:0,good_for:["evening","solo"],tags:["disparition","dilemme moral"],color:"linear-gradient(135deg,#1c1c2b,#3a3a55)"},
+{id:"m11",wikidata_id:"Q26988",title:"Shutter Island",year:2010,runtime:138,country:"USA",languages:["en"],genres:["thriller"],director:"Martin Scorsese",actors:["Leonardo DiCaprio","Mark Ruffalo"],synopsis:"Deux marshals enquêtent sur la disparition d'une patiente dans un hôpital psychiatrique isolé sur une île.",moods:["dark","tense","cerebral"],intensity:7,humor:0,romance:0,action:2,violence:4,complexity:8,feel_good:1,good_for:["evening","solo"],tags:["twist","psychiatrie"],color:"linear-gradient(135deg,#0e1e2e,#264a5e)"},
+{id:"m12",wikidata_id:"Q21500755",title:"Premier Contact",original_title:"Arrival",year:2016,runtime:116,country:"USA",languages:["en"],genres:["scifi","drama"],director:"Denis Villeneuve",actors:["Amy Adams","Jeremy Renner"],synopsis:"Une linguiste tente de communiquer avec des extraterrestres dont les vaisseaux sont apparus sur Terre.",moods:["cerebral","light"],intensity:4,humor:0,romance:2,action:0,violence:0,complexity:7,feel_good:5,good_for:["solo","couple"],tags:["premier contact","linguistique"],color:"linear-gradient(135deg,#151a26,#3a4a66)"},
+{id:"m13",wikidata_id:"Q168067",title:"Interstellar",year:2014,runtime:169,country:"USA",languages:["en"],genres:["scifi","drama"],director:"Christopher Nolan",actors:["Matthew McConaughey","Anne Hathaway"],synopsis:"Un groupe d'explorateurs traverse un trou de ver pour trouver une nouvelle planète habitable pour l'humanité.",moods:["cerebral","intense"],intensity:6,humor:1,romance:2,action:3,violence:0,complexity:8,feel_good:4,good_for:["evening","solo"],tags:["espace","temps"],color:"linear-gradient(135deg,#0a0e1a,#1c2e4a)"},
+{id:"m14",wikidata_id:"Q15716434",title:"Ex Machina",year:2014,runtime:108,country:"UK",languages:["en"],genres:["scifi","thriller"],director:"Alex Garland",actors:["Domhnall Gleeson","Alicia Vikander"],synopsis:"Un jeune programmeur est invité à évaluer si une intelligence artificielle est capable de conscience.",moods:["cerebral","dark","tense"],intensity:5,humor:1,romance:1,action:0,violence:2,complexity:8,feel_good:1,good_for:["solo"],tags:["intelligence artificielle","huis clos"],color:"linear-gradient(135deg,#0e1414,#2a4040)"},
+{id:"m15",wikidata_id:"Q1523873",title:"Her",year:2013,runtime:126,country:"USA",languages:["en"],genres:["scifi","romance"],director:"Spike Jonze",actors:["Joaquin Phoenix","Scarlett Johansson"],synopsis:"Un homme solitaire tombe amoureux d'un système d'exploitation doté d'une intelligence artificielle avancée.",moods:["romantic","cerebral","light"],intensity:2,humor:1,romance:8,action:0,violence:0,complexity:5,feel_good:5,good_for:["solo","couple"],tags:["amour","technologie"],color:"linear-gradient(135deg,#5c2a1a,#b5602b)"},
+{id:"m16",wikidata_id:"Q17738802",title:"La La Land",year:2016,runtime:128,country:"USA",languages:["en"],genres:["romance","musical"],director:"Damien Chazelle",actors:["Ryan Gosling","Emma Stone"],synopsis:"Une actrice et un pianiste de jazz tombent amoureux à Los Angeles tout en poursuivant leurs rêves artistiques.",moods:["romantic","feelgood","light"],intensity:2,humor:3,romance:9,action:0,violence:0,complexity:2,feel_good:7,good_for:["couple"],tags:["musique","los angeles"],color:"linear-gradient(135deg,#5c1a3a,#c9a227)"},
+{id:"m17",wikidata_id:"Q184843",title:"Love Actually",year:2003,runtime:135,country:"UK",languages:["en"],genres:["romance","comedy"],director:"Richard Curtis",actors:["Hugh Grant","Emma Thompson"],synopsis:"Plusieurs histoires d'amour entrecroisées à Londres pendant les fêtes de Noël.",moods:["romantic","feelgood","funny","light"],intensity:2,humor:6,romance:8,action:0,violence:0,complexity:2,feel_good:8,good_for:["couple","family"],tags:["noël","choral"],color:"linear-gradient(135deg,#5c1a1a,#c9a227)"},
+{id:"m18",wikidata_id:"Q186531",title:"Le Fabuleux Destin d'Amélie Poulain",year:2001,runtime:122,country:"France",languages:["fr"],genres:["romance","comedy"],director:"Jean-Pierre Jeunet",actors:["Audrey Tautou","Mathieu Kassovitz"],synopsis:"Une jeune serveuse parisienne rêveuse décide de changer discrètement la vie de ceux qui l'entourent.",moods:["romantic","feelgood","light","uplifting"],intensity:1,humor:5,romance:6,action:0,violence:0,complexity:2,feel_good:9,good_for:["couple","solo"],tags:["paris","conte moderne"],color:"linear-gradient(135deg,#7a2a1a,#c9a227)"},
+{id:"m19",wikidata_id:"Q7378",title:"John Wick",year:2014,runtime:101,country:"USA",languages:["en"],genres:["action","thriller"],director:"Chad Stahelski",actors:["Keanu Reeves"],synopsis:"Un ancien tueur à gages sort de sa retraite pour venger la mort de son chien, dernier cadeau de sa femme.",moods:["intense","dark"],intensity:8,humor:1,romance:1,action:9,violence:8,complexity:2,feel_good:3,good_for:["evening","solo","friends"],tags:["vengeance","action pure"],color:"linear-gradient(135deg,#1a1a1a,#3a1a1a)"},
+{id:"m20",wikidata_id:"Q17550491",title:"Mad Max: Fury Road",year:2015,runtime:120,country:"Australia",languages:["en"],genres:["action","scifi","adventure"],director:"George Miller",actors:["Tom Hardy","Charlize Theron"],synopsis:"Dans un désert post-apocalyptique, une guerrière tente d'aider des captives à fuir un tyran tout-puissant.",moods:["intense"],intensity:9,humor:1,romance:0,action:10,violence:7,complexity:2,feel_good:3,good_for:["evening","friends"],tags:["post-apocalyptique","poursuite"],color:"linear-gradient(135deg,#3a2a0e,#8a5a1a)"},
+{id:"m21",wikidata_id:"Q45211237",title:"À couteaux tirés",original_title:"Knives Out",year:2019,runtime:130,country:"USA",languages:["en"],genres:["thriller","comedy","crime"],director:"Rian Johnson",actors:["Daniel Craig","Ana de Armas"],synopsis:"Un détective enquête sur la mort suspecte d'un riche romancier entouré d'une famille pleine de secrets.",moods:["funny","cerebral","light"],intensity:4,humor:6,romance:0,action:0,violence:1,complexity:5,feel_good:5,good_for:["friends","couple"],tags:["whodunit","huis clos"],color:"linear-gradient(135deg,#2a1a0e,#7a4a1a)"},
+{id:"m22",wikidata_id:"Q19835626",title:"The Grand Budapest Hotel",year:2014,runtime:99,country:"USA",languages:["en"],genres:["comedy","adventure"],director:"Wes Anderson",actors:["Ralph Fiennes","Tony Revolori"],synopsis:"Le concierge d'un célèbre hôtel européen et son jeune protégé se retrouvent mêlés au vol d'un tableau et un héritage.",moods:["funny","light","absurd","uplifting"],intensity:3,humor:8,romance:1,action:2,violence:1,complexity:3,feel_good:8,good_for:["friends","solo","couple"],tags:["esthétique","comédie loufoque"],color:"linear-gradient(135deg,#8a2a4a,#c9a227)"},
+{id:"m23",wikidata_id:"Q52462",title:"Parasite",year:2019,runtime:132,country:"Corée du Sud",languages:["ko"],genres:["thriller","drama"],director:"Bong Joon-ho",actors:["Song Kang-ho","Lee Sun-kyun"],synopsis:"Une famille pauvre s'infiltre progressivement dans le foyer d'une famille aisée, avec des conséquences imprévisibles.",moods:["dark","cerebral","tense"],intensity:7,humor:3,romance:0,action:1,violence:5,complexity:7,feel_good:1,good_for:["evening","solo"],tags:["lutte des classes","satire sociale"],color:"linear-gradient(135deg,#1a2418,#3a5a2e)"},
+{id:"m24",wikidata_id:"Q1130978",title:"Sideways",year:2004,runtime:126,country:"USA",languages:["en"],genres:["comedy","drama"],director:"Alexander Payne",actors:["Paul Giamatti","Thomas Haden Church"],synopsis:"Deux amis partent en road trip dans les vignobles de Californie avant le mariage de l'un d'eux.",moods:["light","feelgood"],intensity:2,humor:5,romance:3,action:0,violence:0,complexity:3,feel_good:6,good_for:["friends","solo"],tags:["road trip","vin"],color:"linear-gradient(135deg,#3a2a0e,#7a5a1a)"},
+/* ---- Extension du catalogue (curé manuellement, données factuelles vérifiées) ---- */
+{id:"m25",wikidata_id:"Q642379",title:"Bienvenue chez les Ch'tis",year:2008,runtime:106,country:"France",languages:["fr"],genres:["comedy"],director:"Dany Boon",actors:["Kad Merad","Dany Boon"],synopsis:"Un directeur de bureau de poste muté dans le Nord de la France découvre une région et des habitants qu'il croyait redouter.",moods:["funny","light","feelgood"],intensity:2,humor:8,romance:1,action:0,violence:0,complexity:1,feel_good:8,good_for:["family","friends"],tags:["régions","comédie populaire"],color:"linear-gradient(135deg,#1a3a5a,#c9a227)"},
+{id:"m26",wikidata_id:"Q1130985",title:"La Grande Vadrouille",year:1966,runtime:132,country:"France",languages:["fr"],genres:["comedy"],director:"Gérard Oury",actors:["Bourvil","Louis de Funès"],synopsis:"Deux Français aident des aviateurs britanniques à échapper aux Allemands pendant l'Occupation, avec une bonne dose de quiproquos.",moods:["funny","light"],intensity:3,humor:8,romance:0,action:2,violence:1,complexity:2,feel_good:7,good_for:["family","friends"],tags:["classique français","occupation"],color:"linear-gradient(135deg,#4a3a1a,#c9a227)"},
+{id:"m27",wikidata_id:"Q503516",title:"Les Visiteurs",year:1993,runtime:107,country:"France",languages:["fr"],genres:["comedy"],director:"Jean-Marie Poiré",actors:["Jean Reno","Christian Clavier"],synopsis:"Un chevalier médiéval et son écuyer sont projetés par erreur au XXe siècle.",moods:["funny","light","absurd"],intensity:2,humor:8,romance:0,action:1,violence:1,complexity:1,feel_good:7,good_for:["family","friends"],tags:["voyage dans le temps","comédie populaire"],color:"linear-gradient(135deg,#2a4a3a,#c9a227)"},
+{id:"m28",wikidata_id:"Q1131032",title:"Le Dîner de Cons",year:1998,runtime:80,country:"France",languages:["fr"],genres:["comedy"],director:"Francis Veber",actors:["Thierry Lhermitte","Jacques Villeret"],synopsis:"Un éditeur invite un homme naïf à un dîner où des convives se moquent de leurs invités, mais la soirée dérape complètement.",moods:["funny","light"],intensity:2,humor:9,romance:0,action:0,violence:0,complexity:2,feel_good:6,good_for:["friends"],tags:["huis clos","comédie de mots"],color:"linear-gradient(135deg,#5a2a1a,#c9a227)"},
+{id:"m29",wikidata_id:"Q660544",title:"Les Tuche",year:2011,runtime:91,country:"France",languages:["fr"],genres:["comedy"],director:"Olivier Baroux",actors:["Jean-Paul Rouve"],synopsis:"Une famille modeste gagne au loto et découvre les excès et les pièges de la nouvelle richesse.",moods:["funny","light"],intensity:2,humor:7,romance:1,action:0,violence:0,complexity:1,feel_good:7,good_for:["family","friends"],tags:["famille","argent"],color:"linear-gradient(135deg,#6a4a1a,#c9a227)"},
+{id:"m30",wikidata_id:"Q17073336",title:"La Famille Bélier",year:2014,runtime:106,country:"France",languages:["fr"],genres:["comedy","drama"],director:"Éric Lartigau",actors:["Karin Viard","Louane Emera"],synopsis:"Seule entendante d'une famille de sourds, une adolescente découvre un talent pour le chant qui va bouleverser l'équilibre familial.",moods:["feelgood","light"],intensity:3,humor:4,romance:2,action:0,violence:0,complexity:2,feel_good:8,good_for:["family"],tags:["musique","famille"],color:"linear-gradient(135deg,#2a3a5a,#c9a227)"},
+{id:"m31",wikidata_id:"Q3405713",title:"Populaire",year:2012,runtime:111,country:"France",languages:["fr"],genres:["comedy","romance"],director:"Régis Roinsard",actors:["Romain Duris","Déborah François"],synopsis:"Dans les années 1950, une jeune secrétaire douée pour la dactylographie est entraînée dans des compétitions de vitesse par son patron.",moods:["romantic","light","feelgood"],intensity:2,humor:5,romance:6,action:0,violence:0,complexity:2,feel_good:7,good_for:["couple"],tags:["années 50","compétition"],color:"linear-gradient(135deg,#8a1a3a,#c9a227)"},
+{id:"m32",wikidata_id:"Q1145321",title:"Neuilly sa mère !",year:2009,runtime:90,country:"France",languages:["fr"],genres:["comedy"],director:"Gabriel Julien-Laferrière",actors:["Samuel Jouy"],synopsis:"Un adolescent de banlieue doit s'installer chez sa tante huppée à Neuilly, choc des cultures garanti.",moods:["funny","light"],intensity:2,humor:7,romance:1,action:0,violence:0,complexity:1,feel_good:6,good_for:["friends","family"],tags:["choc des cultures"],color:"linear-gradient(135deg,#3a1a4a,#c9a227)"},
+{id:"m33",wikidata_id:"Q595497",title:"Zodiac",year:2007,runtime:157,country:"USA",languages:["en"],genres:["thriller"],director:"David Fincher",actors:["Jake Gyllenhaal","Robert Downey Jr."],synopsis:"Un dessinateur de presse s'obsède pour l'identité d'un tueur en série qui défie la police de San Francisco pendant des décennies.",moods:["dark","cerebral","tense"],intensity:6,humor:1,romance:0,action:1,violence:4,complexity:7,feel_good:0,good_for:["evening","solo"],tags:["tueur en série","enquête longue"],color:"linear-gradient(135deg,#141414,#3a3a1a)"},
+{id:"m34",wikidata_id:"Q13417",title:"Gone Girl",year:2014,runtime:149,country:"USA",languages:["en"],genres:["thriller"],director:"David Fincher",actors:["Ben Affleck","Rosamund Pike"],synopsis:"La disparition soudaine d'une femme le jour de son anniversaire de mariage jette la suspicion sur son mari.",moods:["dark","tense","cerebral"],intensity:7,humor:1,romance:1,action:0,violence:3,complexity:7,feel_good:0,good_for:["evening","solo"],tags:["couple","manipulation"],color:"linear-gradient(135deg,#1a1a2a,#4a1a2a)"},
+{id:"m35",wikidata_id:"Q168763",title:"Le Silence des agneaux",original_title:"The Silence of the Lambs",year:1991,runtime:118,country:"USA",languages:["en"],genres:["thriller"],director:"Jonathan Demme",actors:["Jodie Foster","Anthony Hopkins"],synopsis:"Une jeune recrue du FBI sollicite l'aide d'un psychiatre criminel emprisonné pour traquer un autre tueur en série.",moods:["dark","tense","cerebral"],intensity:8,humor:0,romance:0,action:1,violence:6,complexity:6,feel_good:0,good_for:["evening","solo"],tags:["tueur en série","fbi"],color:"linear-gradient(135deg,#0e0e0e,#3a1a1a)"},
+{id:"m36",wikidata_id:"Q184098",title:"No Country for Old Men",year:2007,runtime:122,country:"USA",languages:["en"],genres:["thriller","crime"],director:"Ethan et Joel Coen",actors:["Javier Bardem","Josh Brolin"],synopsis:"Un homme qui découvre une mallette d'argent est traqué par un tueur implacable dans le désert du Texas.",moods:["dark","tense","cerebral"],intensity:8,humor:1,romance:0,action:2,violence:7,complexity:6,feel_good:0,good_for:["evening","solo"],tags:["far west moderne","poursuite"],color:"linear-gradient(135deg,#3a2a1a,#5a3a1a)"},
+{id:"m37",wikidata_id:"Q217043",title:"Nightcrawler",year:2014,runtime:117,country:"USA",languages:["en"],genres:["thriller"],director:"Dan Gilroy",actors:["Jake Gyllenhaal"],synopsis:"Un homme sans scrupules se lance dans le journalisme freelance nocturne à Los Angeles, filmant accidents et crimes pour les vendre aux chaînes d'info.",moods:["dark","tense","cerebral"],intensity:7,humor:1,romance:0,action:1,violence:4,complexity:5,feel_good:0,good_for:["evening","solo"],tags:["médias","ambition"],color:"linear-gradient(135deg,#141420,#3a2a4a)"},
+{id:"m38",wikidata_id:"Q20696495",title:"Get Out",year:2017,runtime:104,country:"USA",languages:["en"],genres:["thriller"],director:"Jordan Peele",actors:["Daniel Kaluuya"],synopsis:"Un jeune homme rend visite à la famille de sa petite amie et découvre que quelque chose ne tourne pas rond derrière leur accueil chaleureux.",moods:["dark","tense","cerebral"],intensity:7,humor:2,romance:1,action:1,violence:4,complexity:5,feel_good:1,good_for:["evening","friends"],tags:["satire sociale","horreur psychologique"],color:"linear-gradient(135deg,#0e1a0e,#2a4a2a)"},
+{id:"m39",wikidata_id:"Q104123",title:"Piège de cristal",original_title:"Die Hard",year:1988,runtime:132,country:"USA",languages:["en"],genres:["action"],director:"John McTiernan",actors:["Bruce Willis"],synopsis:"Un policier new-yorkais se retrouve seul pour affronter un groupe de terroristes ayant pris en otage un immeuble de Los Angeles.",moods:["intense"],intensity:8,humor:3,romance:0,action:9,violence:6,complexity:2,feel_good:4,good_for:["evening","friends"],tags:["huis clos","action pure"],color:"linear-gradient(135deg,#1a1a1a,#5a1a1a)"},
+{id:"m40",wikidata_id:"Q157443",title:"The Dark Knight",year:2008,runtime:152,country:"USA",languages:["en"],genres:["action","thriller"],director:"Christopher Nolan",actors:["Christian Bale","Heath Ledger"],synopsis:"Batman doit affronter le Joker, un criminel chaotique qui plonge Gotham dans le chaos.",moods:["dark","intense","cerebral"],intensity:8,humor:1,romance:1,action:7,violence:6,complexity:6,feel_good:2,good_for:["evening","friends"],tags:["super-héros","chaos"],color:"linear-gradient(135deg,#0a0a0a,#1a1a1a)"},
+{id:"m41",wikidata_id:"Q210324",title:"Skyfall",year:2012,runtime:143,country:"UK",languages:["en"],genres:["action"],director:"Sam Mendes",actors:["Daniel Craig"],synopsis:"James Bond doit protéger le MI6 et sa directrice d'une menace venue du passé.",moods:["intense"],intensity:7,humor:2,romance:2,action:8,violence:5,complexity:3,feel_good:3,good_for:["evening","friends"],tags:["espionnage","james bond"],color:"linear-gradient(135deg,#0e1420,#2a3a5a)"},
+{id:"m42",wikidata_id:"Q184632",title:"Speed",year:1994,runtime:116,country:"USA",languages:["en"],genres:["action"],director:"Jan de Bont",actors:["Keanu Reeves","Sandra Bullock"],synopsis:"Un policier doit empêcher l'explosion d'un bus piégé qui ne peut pas descendre sous une certaine vitesse.",moods:["intense"],intensity:8,humor:2,romance:2,action:9,violence:4,complexity:1,feel_good:4,good_for:["evening","friends"],tags:["course contre la montre"],color:"linear-gradient(135deg,#1a1a2a,#3a3a6a)"},
+{id:"m43",wikidata_id:"Q189330",title:"Top Gun",year:1986,runtime:110,country:"USA",languages:["en"],genres:["action"],director:"Tony Scott",actors:["Tom Cruise"],synopsis:"Un pilote de chasse de la marine américaine s'entraîne dans une école d'élite tout en gérant sa rivalité avec un autre pilote.",moods:["intense","light"],intensity:6,humor:2,romance:3,action:7,violence:2,complexity:1,feel_good:5,good_for:["friends","evening"],tags:["aviation","rivalité"],color:"linear-gradient(135deg,#1a2a4a,#4a6a9a)"},
+{id:"m44",wikidata_id:"Q184843",title:"The Bourne Identity",year:2002,runtime:119,country:"USA",languages:["en"],genres:["action","thriller"],director:"Doug Liman",actors:["Matt Damon"],synopsis:"Un homme amnésique repêché en mer découvre progressivement qu'il possède des talents d'agent secret entraîné à tuer.",moods:["intense","tense"],intensity:7,humor:1,romance:1,action:7,violence:4,complexity:3,feel_good:3,good_for:["evening","solo"],tags:["amnésie","espionnage"],color:"linear-gradient(135deg,#141a1a,#2a4a4a)"},
+{id:"m45",wikidata_id:"Q184843",title:"Blade Runner",year:1982,runtime:117,country:"USA",languages:["en"],genres:["scifi"],director:"Ridley Scott",actors:["Harrison Ford"],synopsis:"Dans un futur pluvieux et néon, un policier traque des androïdes évadés cherchant à prolonger leur existence.",moods:["cerebral","dark"],intensity:5,humor:0,romance:2,action:3,violence:3,complexity:8,feel_good:1,good_for:["solo"],tags:["cyberpunk","androïdes"],color:"linear-gradient(135deg,#0e0e1a,#2a1a3a)"},
+{id:"m46",wikidata_id:"Q83495",title:"Matrix",original_title:"The Matrix",year:1999,runtime:136,country:"USA",languages:["en"],genres:["scifi","action"],director:"Lana et Lilly Wachowski",actors:["Keanu Reeves"],synopsis:"Un programmeur découvre que la réalité qu'il connaît est une simulation générée par des machines.",moods:["cerebral","intense"],intensity:7,humor:1,romance:1,action:7,violence:5,complexity:7,feel_good:3,good_for:["evening","friends"],tags:["simulation","philosophie"],color:"linear-gradient(135deg,#0a1a0a,#1a3a1a)"},
+{id:"m47",wikidata_id:"Q25188",title:"Inception",year:2010,runtime:148,country:"USA",languages:["en"],genres:["scifi"],director:"Christopher Nolan",actors:["Leonardo DiCaprio"],synopsis:"Un voleur spécialisé dans l'extraction d'idées dans les rêves se voit confier une mission inverse : implanter une idée.",moods:["cerebral","intense"],intensity:6,humor:1,romance:2,action:5,violence:2,complexity:9,feel_good:3,good_for:["solo","evening"],tags:["rêves","casse"],color:"linear-gradient(135deg,#0e1420,#2a3a5a)"},
+{id:"m48",wikidata_id:"Q231470",title:"District 9",year:2009,runtime:112,country:"Afrique du Sud",languages:["en"],genres:["scifi"],director:"Neill Blomkamp",actors:["Sharlto Copley"],synopsis:"Des extraterrestres réfugiés vivent parqués près de Johannesburg lorsqu'un agent chargé de leur déplacement est contaminé par une substance alien.",moods:["dark","intense","cerebral"],intensity:7,humor:1,romance:0,action:5,violence:6,complexity:5,feel_good:1,good_for:["solo","evening"],tags:["apartheid","extraterrestres"],color:"linear-gradient(135deg,#2a2a0e,#5a5a1a)"},
+{id:"m49",wikidata_id:"Q1195279",title:"Edge of Tomorrow",year:2014,runtime:113,country:"USA",languages:["en"],genres:["scifi","action"],director:"Doug Liman",actors:["Tom Cruise","Emily Blunt"],synopsis:"Un officier revit en boucle la même journée de bataille contre des extraterrestres, progressant à chaque mort.",moods:["intense","cerebral"],intensity:7,humor:3,romance:2,action:8,violence:5,complexity:4,feel_good:4,good_for:["evening","friends"],tags:["boucle temporelle","invasion"],color:"linear-gradient(135deg,#1a2a2a,#3a5a5a)"},
+{id:"m50",wikidata_id:"Q47703",title:"Dune",year:2021,runtime:155,country:"USA",languages:["en"],genres:["scifi"],director:"Denis Villeneuve",actors:["Timothée Chalamet"],synopsis:"L'héritier d'une grande maison noble part sur une planète désertique convoitée pour sa ressource la plus précieuse.",moods:["cerebral","intense"],intensity:6,humor:0,romance:1,action:4,violence:4,complexity:7,feel_good:2,good_for:["evening","solo"],tags:["politique","désert"],color:"linear-gradient(135deg,#3a2a1a,#6a4a1a)"},
+{id:"m51",wikidata_id:"Q44578",title:"Titanic",year:1997,runtime:195,country:"USA",languages:["en"],genres:["romance","drama"],director:"James Cameron",actors:["Leonardo DiCaprio","Kate Winslet"],synopsis:"Deux jeunes gens de classes sociales opposées vivent une histoire d'amour à bord d'un paquebot voué au naufrage.",moods:["romantic","feelgood"],intensity:5,humor:1,romance:9,action:1,violence:2,complexity:2,feel_good:5,good_for:["couple"],tags:["naufrage","classes sociales"],color:"linear-gradient(135deg,#0e1a2a,#2a4a6a)"},
+{id:"m52",wikidata_id:"Q220986",title:"Orgueil et Préjugés",original_title:"Pride and Prejudice",year:2005,runtime:129,country:"UK",languages:["en"],genres:["romance"],director:"Joe Wright",actors:["Keira Knightley"],synopsis:"Dans l'Angleterre du XIXe siècle, une jeune femme vive d'esprit doit naviguer entre convenances sociales et sentiments naissants.",moods:["romantic","light"],intensity:2,humor:3,romance:8,action:0,violence:0,complexity:3,feel_good:6,good_for:["couple"],tags:["époque","classique littéraire"],color:"linear-gradient(135deg,#3a2a3a,#6a4a6a)"},
+{id:"m53",wikidata_id:"Q724746",title:"Before Sunrise",year:1995,runtime:101,country:"USA",languages:["en"],genres:["romance"],director:"Richard Linklater",actors:["Ethan Hawke","Julie Delpy"],synopsis:"Deux jeunes voyageurs se rencontrent dans un train et passent une nuit à discuter en errant dans Vienne.",moods:["romantic","cerebral","light"],intensity:1,humor:2,romance:7,action:0,violence:0,complexity:3,feel_good:6,good_for:["couple","solo"],tags:["rencontre","dialogue"],color:"linear-gradient(135deg,#2a1a3a,#5a3a7a)"},
+{id:"m54",wikidata_id:"Q212145",title:"The Notebook",year:2004,runtime:123,country:"USA",languages:["en"],genres:["romance"],director:"Nick Cassavetes",actors:["Ryan Gosling","Rachel McAdams"],synopsis:"Un homme âgé raconte à une patiente atteinte de démence l'histoire d'un amour de jeunesse contrarié par les différences sociales.",moods:["romantic","feelgood"],intensity:3,humor:1,romance:9,action:0,violence:0,complexity:2,feel_good:6,good_for:["couple"],tags:["amour contrarié","mémoire"],color:"linear-gradient(135deg,#3a1a1a,#7a3a3a)"},
+{id:"m55",wikidata_id:"Q1194658",title:"500 jours ensemble",original_title:"500 Days of Summer",year:2009,runtime:95,country:"USA",languages:["en"],genres:["romance","comedy"],director:"Marc Webb",actors:["Joseph Gordon-Levitt","Zooey Deschanel"],synopsis:"Un jeune homme revit, dans le désordre, les 500 jours d'une relation amoureuse qui ne s'est pas terminée comme il l'espérait.",moods:["romantic","light","cerebral"],intensity:2,humor:5,romance:6,action:0,violence:0,complexity:3,feel_good:5,good_for:["couple","solo"],tags:["rupture","non linéaire"],color:"linear-gradient(135deg,#1a3a3a,#3a6a6a)"},
+{id:"m56",wikidata_id:"Q231473",title:"Coup de foudre à Notting Hill",original_title:"Notting Hill",year:1999,runtime:124,country:"UK",languages:["en"],genres:["romance","comedy"],director:"Roger Michell",actors:["Julia Roberts","Hugh Grant"],synopsis:"Un libraire londonien discret voit sa vie bouleversée lorsqu'une célèbre actrice américaine entre dans sa boutique.",moods:["romantic","light","feelgood"],intensity:1,humor:5,romance:7,action:0,violence:0,complexity:2,feel_good:7,good_for:["couple"],tags:["célébrité","londres"],color:"linear-gradient(135deg,#3a1a2a,#7a3a5a)"},
+{id:"m57",wikidata_id:"Q104123",title:"Le Monde de Nemo",original_title:"Finding Nemo",year:2003,runtime:100,country:"USA",languages:["en"],genres:["adventure"],director:"Andrew Stanton",actors:[],synopsis:"Un poisson-clown parcourt l'océan pour retrouver son fils capturé par un plongeur.",moods:["feelgood","light","uplifting"],intensity:2,humor:5,romance:0,action:2,violence:0,complexity:1,feel_good:8,good_for:["family"],tags:["animation","océan"],color:"linear-gradient(135deg,#0e2a3a,#2a6a8a)"},
+{id:"m58",wikidata_id:"Q3212656",title:"Paddington",year:2014,runtime:95,country:"UK",languages:["en"],genres:["comedy","adventure"],director:"Paul King",actors:[],synopsis:"Un ourson péruvien débarque à Londres et est recueilli par une famille qui apprend à vivre avec ses maladresses attachantes.",moods:["feelgood","funny","light","uplifting"],intensity:1,humor:6,romance:0,action:1,violence:0,complexity:1,feel_good:9,good_for:["family"],tags:["animation-prises de vue réelles","famille d'accueil"],color:"linear-gradient(135deg,#5a2a1a,#c9752b)"},
+{id:"m59",wikidata_id:"Q184843",title:"Les Indestructibles",original_title:"The Incredibles",year:2004,runtime:115,country:"USA",languages:["en"],genres:["adventure"],director:"Brad Bird",actors:[],synopsis:"Une famille de super-héros contrainte à la vie normale doit reprendre du service pour affronter une nouvelle menace.",moods:["feelgood","funny","uplifting"],intensity:4,humor:5,romance:1,action:5,violence:2,complexity:2,feel_good:7,good_for:["family"],tags:["super-héros","famille"],color:"linear-gradient(135deg,#8a2a1a,#c9a227)"},
+{id:"m60",wikidata_id:"Q184843",title:"E.T. l'extra-terrestre",original_title:"E.T. the Extra-Terrestrial",year:1982,runtime:115,country:"USA",languages:["en"],genres:["adventure","drama"],director:"Steven Spielberg",actors:[],synopsis:"Un jeune garçon se lie d'amitié avec un extraterrestre égaré sur Terre et l'aide à rentrer chez lui.",moods:["feelgood","uplifting","light"],intensity:3,humor:2,romance:0,action:1,violence:0,complexity:2,feel_good:8,good_for:["family"],tags:["amitié","enfance"],color:"linear-gradient(135deg,#1a2a4a,#4a6a9a)"},
+{id:"m61",wikidata_id:"Q184843",title:"Maman, j'ai raté l'avion",original_title:"Home Alone",year:1990,runtime:103,country:"USA",languages:["en"],genres:["comedy"],director:"Chris Columbus",actors:["Macaulay Culkin"],synopsis:"Un enfant oublié par sa famille pendant les fêtes de Noël doit défendre sa maison contre deux cambrioleurs.",moods:["funny","light","uplifting"],intensity:3,humor:7,romance:0,action:2,violence:2,complexity:1,feel_good:7,good_for:["family"],tags:["noël","pièges"],color:"linear-gradient(135deg,#2a4a1a,#6a9a2a)"},
+{id:"m62",wikidata_id:"Q184843",title:"Forrest Gump",year:1994,runtime:142,country:"USA",languages:["en"],genres:["drama","comedy"],director:"Robert Zemeckis",actors:["Tom Hanks"],synopsis:"Un homme au grand cœur mais simple d'esprit traverse malgré lui les grands événements de l'histoire américaine.",moods:["feelgood","cerebral"],intensity:3,humor:3,romance:4,action:1,violence:2,complexity:3,feel_good:8,good_for:["family","solo"],tags:["destin","histoire américaine"],color:"linear-gradient(135deg,#2a3a1a,#6a8a2a)"},
+{id:"m63",wikidata_id:"Q184843",title:"Les Évadés",original_title:"The Shawshank Redemption",year:1994,runtime:142,country:"USA",languages:["en"],genres:["drama"],director:"Frank Darabont",actors:["Tim Robbins","Morgan Freeman"],synopsis:"Un banquier condamné à tort pour meurtre tisse une amitié durable en prison tout en préparant méticuleusement son évasion.",moods:["cerebral","feelgood"],intensity:5,humor:1,romance:0,action:1,violence:3,complexity:4,feel_good:7,good_for:["solo","evening"],tags:["prison","espoir"],color:"linear-gradient(135deg,#1a1a1a,#3a3a3a)"},
+{id:"m64",wikidata_id:"Q184843",title:"12 Years a Slave",year:2013,runtime:134,country:"USA",languages:["en"],genres:["drama"],director:"Steve McQueen",actors:["Chiwetel Ejiofor"],synopsis:"Un homme noir libre est kidnappé et vendu en esclavage dans le sud des États-Unis avant la guerre de Sécession.",moods:["dark","cerebral"],intensity:8,humor:0,romance:0,action:0,violence:7,complexity:5,feel_good:0,good_for:["solo"],tags:["esclavage","histoire"],color:"linear-gradient(135deg,#1a1408,#3a2a10)"},
+{id:"m65",wikidata_id:"Q184843",title:"Marriage Story",year:2019,runtime:137,country:"USA",languages:["en"],genres:["drama"],director:"Noah Baumbach",actors:["Scarlett Johansson","Adam Driver"],synopsis:"Un couple traverse une séparation difficile qui met à l'épreuve leur relation en tant que parents et anciens partenaires.",moods:["dark","cerebral"],intensity:5,humor:2,romance:3,action:0,violence:0,complexity:5,feel_good:1,good_for:["solo"],tags:["divorce","parentalité"],color:"linear-gradient(135deg,#1a1a2a,#3a3a5a)"},
+{id:"m66",wikidata_id:"Q184843",title:"Manchester by the Sea",year:2016,runtime:137,country:"USA",languages:["en"],genres:["drama"],director:"Kenneth Lonergan",actors:["Casey Affleck"],synopsis:"Un concierge solitaire doit revenir dans sa ville natale et affronter un passé douloureux après la mort de son frère.",moods:["dark","cerebral"],intensity:6,humor:1,romance:0,action:0,violence:1,complexity:5,feel_good:0,good_for:["solo"],tags:["deuil","famille"],color:"linear-gradient(135deg,#0e1a2a,#2a3a4a)"},
+{id:"m67",wikidata_id:"Q184843",title:"Casablanca",year:1942,runtime:102,country:"USA",languages:["en"],genres:["romance","drama"],director:"Michael Curtiz",actors:["Humphrey Bogart","Ingrid Bergman"],synopsis:"À Casablanca pendant la Seconde Guerre mondiale, un ancien amour ressurgit dans la vie d'un tenancier de bar désabusé.",moods:["romantic","dark"],intensity:4,humor:1,romance:7,action:1,violence:1,complexity:3,feel_good:3,good_for:["couple","solo"],tags:["classique hollywoodien","guerre"],color:"linear-gradient(135deg,#1a1a1a,#3a3a3a)"},
+{id:"m68",wikidata_id:"Q184843",title:"Certains l'aiment chaud",original_title:"Some Like It Hot",year:1959,runtime:121,country:"USA",languages:["en"],genres:["comedy"],director:"Billy Wilder",actors:["Marilyn Monroe"],synopsis:"Deux musiciens témoins d'un règlement de comptes se travestissent pour échapper à la mafia en intégrant un orchestre féminin.",moods:["funny","light"],intensity:2,humor:8,romance:3,action:1,violence:1,complexity:2,feel_good:7,good_for:["friends"],tags:["classique hollywoodien","travestissement"],color:"linear-gradient(135deg,#3a2a3a,#7a5a7a)"},
+{id:"m69",wikidata_id:"Q184843",title:"Psychose",original_title:"Psycho",year:1960,runtime:109,country:"USA",languages:["en"],genres:["thriller"],director:"Alfred Hitchcock",actors:["Anthony Perkins"],synopsis:"Une femme en fuite avec de l'argent volé s'arrête dans un motel isolé tenu par un homme étrange et sa mère.",moods:["dark","tense"],intensity:6,humor:0,romance:0,action:1,violence:4,complexity:4,feel_good:0,good_for:["evening","solo"],tags:["classique du suspense","motel"],color:"linear-gradient(135deg,#0e0e0e,#2a2a2a)"},
+{id:"m70",wikidata_id:"Q47703",title:"Le Parrain",original_title:"The Godfather",year:1972,runtime:175,country:"USA",languages:["en"],genres:["crime","drama"],director:"Francis Ford Coppola",actors:["Marlon Brando","Al Pacino"],synopsis:"Le fils cadet d'un parrain de la mafia new-yorkaise est peu à peu entraîné dans les affaires familiales.",moods:["dark","cerebral"],intensity:6,humor:0,romance:1,action:2,violence:5,complexity:6,feel_good:0,good_for:["evening","solo"],tags:["mafia","saga familiale"],color:"linear-gradient(135deg,#0e0e0e,#2a1a0e)"},
+{id:"m71",wikidata_id:"Q184843",title:"Annie Hall",year:1977,runtime:93,country:"USA",languages:["en"],genres:["comedy","romance"],director:"Woody Allen",actors:["Woody Allen","Diane Keaton"],synopsis:"Un humoriste new-yorkais analyse avec autodérision les hauts et les bas de sa relation avec une chanteuse excentrique.",moods:["funny","cerebral","light"],intensity:2,humor:6,romance:5,action:0,violence:0,complexity:4,feel_good:5,good_for:["couple","solo"],tags:["autodérision","new york"],color:"linear-gradient(135deg,#2a2a1a,#6a6a3a)"},
+{id:"m72",wikidata_id:"Q104864861",title:"Everything Everywhere All at Once",year:2022,runtime:140,country:"USA",languages:["en"],genres:["scifi","comedy"],director:"Daniel Kwan et Daniel Scheinert",actors:["Michelle Yeoh"],synopsis:"Une commerçante débordée découvre qu'elle doit sauter entre des versions parallèles de sa vie pour éviter une catastrophe multivers.",moods:["absurd","cerebral","feelgood"],intensity:5,humor:5,romance:2,action:4,violence:2,complexity:7,feel_good:6,good_for:["family","friends"],tags:["multivers","famille"],color:"linear-gradient(135deg,#3a1a4a,#8a3a9a)"},
+{id:"m73",wikidata_id:"Q47701731",title:"Barbie",year:2023,runtime:114,country:"USA",languages:["en"],genres:["comedy"],director:"Greta Gerwig",actors:["Margot Robbie","Ryan Gosling"],synopsis:"Une poupée Barbie vivant dans un monde parfait est confrontée à une crise existentielle qui l'entraîne dans le monde réel.",moods:["funny","light","uplifting"],intensity:2,humor:6,romance:2,action:1,violence:0,complexity:3,feel_good:6,good_for:["friends","family"],tags:["satire","identité"],color:"linear-gradient(135deg,#c04779,#f2a6c9)"},
+{id:"m74",wikidata_id:"Q104123456",title:"Oppenheimer",year:2023,runtime:180,country:"USA",languages:["en"],genres:["drama","thriller"],director:"Christopher Nolan",actors:["Cillian Murphy"],synopsis:"Le physicien qui a dirigé le développement de la bombe atomique est ensuite confronté aux conséquences morales et politiques de son œuvre.",moods:["dark","cerebral","intense"],intensity:6,humor:0,romance:1,action:0,violence:2,complexity:8,feel_good:0,good_for:["solo","evening"],tags:["histoire","science"],color:"linear-gradient(135deg,#1a1408,#5a3a10)"},
+{id:"m75",wikidata_id:"Q117467still",title:"Anatomie d'une chute",year:2023,runtime:152,country:"France",languages:["fr"],genres:["thriller","drama"],director:"Justine Triet",actors:["Sandra Hüller"],synopsis:"Après la mort suspecte de son mari, une romancière doit se défendre lors d'un procès qui dissèque son couple et ses zones d'ombre.",moods:["cerebral","dark","tense"],intensity:5,humor:1,romance:0,action:0,violence:1,complexity:7,feel_good:0,good_for:["solo","evening"],tags:["procès","couple"],color:"linear-gradient(135deg,#141414,#3a3a3a)"},
+{id:"m76",wikidata_id:"Q117467holdovers",title:"The Holdovers",year:2023,runtime:133,country:"USA",languages:["en"],genres:["comedy","drama"],director:"Alexander Payne",actors:["Paul Giamatti"],synopsis:"Un professeur bourru et solitaire se retrouve à surveiller un pensionnat vide pendant les vacances de Noël, avec un élève laissé pour compte.",moods:["cerebral","feelgood","light"],intensity:2,humor:4,romance:0,action:0,violence:0,complexity:3,feel_good:6,good_for:["solo"],tags:["noël","pensionnat"],color:"linear-gradient(135deg,#2a1a0e,#6a4a1a)"},
+{id:"m77",wikidata_id:"Q1194482",title:"La Soupe au canard",original_title:"Duck Soup",year:1933,runtime:68,country:"USA",languages:["en"],genres:["comedy"],director:"Leo McCarey",actors:["Groucho Marx"],synopsis:"Le nouveau dirigeant fantasque d'un petit pays provoque, sans le vouloir, une guerre absurde avec un pays voisin.",moods:["funny","absurd","light"],intensity:1,humor:9,romance:0,action:1,violence:0,complexity:1,feel_good:6,good_for:["friends"],tags:["burlesque","classique du muet parlant"],color:"linear-gradient(135deg,#2a2a2a,#5a5a5a)"},
+{id:"m78",wikidata_id:"Q14928599",title:"Locke",year:2013,runtime:85,country:"UK",languages:["en"],genres:["drama"],director:"Steven Knight",actors:["Tom Hardy"],synopsis:"Un chef de chantier conduit seul sur l'autoroute une nuit entière, gérant par téléphone l'effondrement de sa vie personnelle et professionnelle.",moods:["tense","cerebral"],intensity:5,humor:0,romance:1,action:0,violence:0,complexity:5,feel_good:1,good_for:["solo"],tags:["huis clos automobile","monologue"],color:"linear-gradient(135deg,#0e0e14,#2a2a3a)"},
+{id:"m79",wikidata_id:"Q5140844",title:"Coherence",year:2013,runtime:89,country:"USA",languages:["en"],genres:["scifi","thriller"],director:"James Ward Byrkit",actors:[],synopsis:"Lors d'un dîner entre amis, le passage d'une comète provoque des phénomènes étranges qui font douter les convives de leur propre réalité.",moods:["cerebral","tense","dark"],intensity:5,humor:1,romance:0,action:0,violence:1,complexity:8,feel_good:0,good_for:["friends","evening"],tags:["réalités parallèles","petit budget"],color:"linear-gradient(135deg,#0e1a1a,#2a4a4a)"},
+{id:"m80",wikidata_id:"Q47703pt2",title:"Le Parrain, 2e partie",original_title:"The Godfather Part II",year:1974,runtime:202,country:"USA",languages:["en"],genres:["crime","drama"],director:"Francis Ford Coppola",actors:["Al Pacino","Robert De Niro"],synopsis:"En parallèle, l'ascension du jeune Vito Corleone et la consolidation du pouvoir de son fils Michael à la tête de la famille.",moods:["dark","cerebral"],intensity:6,humor:0,romance:0,action:2,violence:5,complexity:7,feel_good:0,good_for:["evening","solo"],tags:["mafia","double récit"],color:"linear-gradient(135deg,#0e0e0e,#2a1a0e)"},
+{id:"m81",wikidata_id:"Q184843lawrence",title:"Lawrence d'Arabie",original_title:"Lawrence of Arabia",year:1962,runtime:228,country:"UK",languages:["en"],genres:["adventure","drama"],director:"David Lean",actors:["Peter O'Toole"],synopsis:"Un officier britannique excentrique unit les tribus arabes pendant la Première Guerre mondiale, jusqu'à s'y perdre lui-même.",moods:["cerebral","intense"],intensity:5,humor:0,romance:0,action:3,violence:3,complexity:6,feel_good:1,good_for:["solo"],tags:["désert","épopée historique"],color:"linear-gradient(135deg,#4a3a1a,#8a6a2a)"},
+];
+
+/* Statistiques communautaires de départ (mock — simulent une base déjà utilisée) */
+const BASELINE_STATS = {
+  m1:{qualityAvg:4.3,qualityCount:812,fitAvg:4.4,fitCount:640,likePct:88},
+  m2:{qualityAvg:4.1,qualityCount:340,fitAvg:4.0,fitCount:290,likePct:80},
+  m3:{qualityAvg:4.2,qualityCount:520,fitAvg:4.3,fitCount:410,likePct:85},
+  m4:{qualityAvg:4.6,qualityCount:2100,fitAvg:4.5,fitCount:1800,likePct:92},
+  m5:{qualityAvg:3.7,qualityCount:610,fitAvg:3.9,fitCount:520,likePct:70},
+  m6:{qualityAvg:4.5,qualityCount:1500,fitAvg:4.2,fitCount:1200,likePct:89},
+  m7:{qualityAvg:4.0,qualityCount:290,fitAvg:3.9,fitCount:240,likePct:76},
+  m8:{qualityAvg:4.1,qualityCount:410,fitAvg:4.0,fitCount:360,likePct:78},
+  m9:{qualityAvg:4.6,qualityCount:1700,fitAvg:4.3,fitCount:1400,likePct:88},
+  m10:{qualityAvg:4.3,qualityCount:780,fitAvg:4.1,fitCount:640,likePct:82},
+  m11:{qualityAvg:4.3,qualityCount:1300,fitAvg:4.2,fitCount:1050,likePct:85},
+  m12:{qualityAvg:4.1,qualityCount:560,fitAvg:4.0,fitCount:470,likePct:79},
+  m13:{qualityAvg:4.6,qualityCount:2400,fitAvg:4.3,fitCount:2000,likePct:90},
+  m14:{qualityAvg:4.2,qualityCount:480,fitAvg:4.1,fitCount:400,likePct:82},
+  m15:{qualityAvg:4.2,qualityCount:520,fitAvg:4.2,fitCount:430,likePct:83},
+  m16:{qualityAvg:4.3,qualityCount:1400,fitAvg:4.2,fitCount:1150,likePct:87},
+  m17:{qualityAvg:4.0,qualityCount:900,fitAvg:4.1,fitCount:760,likePct:83},
+  m18:{qualityAvg:4.5,qualityCount:1100,fitAvg:4.4,fitCount:900,likePct:90},
+  m19:{qualityAvg:4.4,qualityCount:1600,fitAvg:4.4,fitCount:1300,likePct:91},
+  m20:{qualityAvg:4.4,qualityCount:1200,fitAvg:4.2,fitCount:980,likePct:88},
+  m21:{qualityAvg:4.4,qualityCount:900,fitAvg:4.3,fitCount:740,likePct:89},
+  m22:{qualityAvg:4.3,qualityCount:850,fitAvg:4.2,fitCount:700,likePct:87},
+  m23:{qualityAvg:4.6,qualityCount:1900,fitAvg:4.2,fitCount:1500,likePct:88},
+  m24:{qualityAvg:4.0,qualityCount:380,fitAvg:3.9,fitCount:310,likePct:77},
+};
+
+const DEFAULT_LIVE_STATS = {qualityAvg:3.5,qualityCount:0,fitAvg:3.5,fitCount:0,likePct:65};
+let LIVE_MOVIES = []; // rempli avec les films renvoyés par le serveur (voir doSearch/doMore)
+
+/* ---------- MODE BACKEND : bascule automatique sur une vraie base Postgres ----------
+   Si un serveur (voir /server) répond sur BACKEND_CANDIDATES, l'app l'utilise pour
+   la recherche/le scoring/les notes au lieu du catalogue local. Sans serveur détecté
+   (cas normal dans l'artefact Claude), rien ne change par rapport à avant. */
+const BACKEND_CANDIDATES = ["http://localhost:3001"];
+let BACKEND_URL = null;
+let backendStatsCache = {}; // id -> {qualityAvg, qualityCount, fitAvg, fitCount, likePct}
+async function detectBackend(){
+  for(const base of BACKEND_CANDIDATES){
+    try{
+      const ctrl = new AbortController();
+      const t = setTimeout(()=>ctrl.abort(), 1200);
+      const resp = await fetch(base+"/api/health", {signal:ctrl.signal});
+      clearTimeout(t);
+      if(resp.ok){ const data = await resp.json(); BACKEND_URL = base; backendCatalogSize = data.catalogSize; return data.catalogSize; }
+    }catch(e){ /* pas de serveur ici, on reste en mode local */ }
+  }
+  return null;
+}
+let backendCatalogSize = null;
+
+/* ---------- MODE MOTEUR SEMANTIQUE (nouveau, prioritaire si present) ----------
+   Serveur separe (voir server/semantic-search.js), sur un port different.
+   Totalement reversible : si absent, le comportement ci-dessus (BACKEND_URL
+   puis mode local) reste strictement identique a avant. */
+const SEMANTIC_BACKEND_CANDIDATES = ["http://localhost:3002"];
+let SEMANTIC_BACKEND_URL = null;
+async function detectSemanticBackend(){
+  for(const base of SEMANTIC_BACKEND_CANDIDATES){
+    try{
+      const ctrl = new AbortController();
+      const t = setTimeout(()=>ctrl.abort(), 1200);
+      const resp = await fetch(base+"/api/health", {signal:ctrl.signal});
+      clearTimeout(t);
+      if(resp.ok){ const data = await resp.json(); SEMANTIC_BACKEND_URL = base; return data.catalogSize; }
+    }catch(e){ /* pas de moteur semantique ici, on garde le fonctionnement existant */ }
+  }
+  return null;
+}
+
+function mergeIntoLiveMovies(movie){
+  if(!LIVE_MOVIES.some(m=>m.id===movie.id)) LIVE_MOVIES.push(movie);
+}
+let cachedUserId = null;
+function generateUuidV4(){
+  if(window.crypto && crypto.randomUUID) return crypto.randomUUID();
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c=>{
+    const r = Math.random()*16|0, v = c==='x'?r:(r&0x3|0x8);
+    return v.toString(16);
+  });
+}
+async function getUserId(){
+  if(cachedUserId) return cachedUserId;
+  try{
+    const r = await window.storage.get("movie_finder_user_id_v1", false);
+    if(r && r.value){ cachedUserId = r.value; return cachedUserId; }
+  }catch(e){ /* pas encore d'id stocké */ }
+  const id = generateUuidV4();
+  cachedUserId = id;
+  try{ await window.storage.set("movie_finder_user_id_v1", id, false); }catch(e){ /* best-effort */ }
+  return id;
+}
+
+const PLATFORMS = ["Netflix","Prime Video","Canal+","Disney+","Apple TV","Location","Achat"];
+function simulatedAvailability(id){
+  // déterministe (basé sur l'id) pour rester stable entre rendus
+  let seed=0; for(const c of id) seed+=c.charCodeAt(0);
+  return PLATFORMS.filter((_,i)=>((seed+i*7)%5)<2);
+}
+
+/* ---------- 3. STOCKAGE PERSISTANT ---------- */
+const USER_KEY="movie_finder_user_state_v1";
+const STATS_KEY="movie_finder_community_stats_v1";
+let userState = { watchHistory:[], searches:[] };
+let communityDelta = {}; // {movieId:{qualitySum,qualityCount,fitSum,fitCount,likeCount}}
+let storageReady=false;
+
+async function loadState(){
+  try{
+    const u = await window.storage.get(USER_KEY,false);
+    if(u && u.value) userState = JSON.parse(u.value);
+  }catch(e){ /* pas encore de données personnelles */ }
+  try{
+    const s = await window.storage.get(STATS_KEY,true);
+    if(s && s.value) communityDelta = JSON.parse(s.value);
+  }catch(e){ /* pas encore de deltas communautaires */ }
+  storageReady=true;
+}
+async function saveUserState(){
+  try{ await window.storage.set(USER_KEY, JSON.stringify(userState), false); }
+  catch(e){ console.warn("Sauvegarde historique impossible :", e); }
+}
+async function saveCommunityDelta(){
+  try{ await window.storage.set(STATS_KEY, JSON.stringify(communityDelta), true); }
+  catch(e){ console.warn("Sauvegarde stats communautaires impossible :", e); }
+}
+
+function getMovieStats(id){
+  if(backendStatsCache[id]) return backendStatsCache[id];
+  const base = BASELINE_STATS[id] || DEFAULT_LIVE_STATS;
+  const d = communityDelta[id] || {qualitySum:0,qualityCount:0,fitSum:0,fitCount:0,likeCount:0};
+  const qCount = base.qualityCount + d.qualityCount;
+  const fCount = base.fitCount + d.fitCount;
+  const qAvg = ((base.qualityAvg*base.qualityCount) + d.qualitySum) / qCount;
+  const fAvg = ((base.fitAvg*base.fitCount) + d.fitSum) / fCount;
+  const baseLikes = Math.round(base.fitCount * base.likePct/100);
+  const likePct = Math.round(((baseLikes + d.likeCount) / fCount) * 100);
+  return {qualityAvg:qAvg, qualityCount:qCount, fitAvg:fAvg, fitCount:fCount, likePct};
+}
+
+function recordRating(movieId, fitRating, qualityRating){
+  if(!communityDelta[movieId]) communityDelta[movieId]={qualitySum:0,qualityCount:0,fitSum:0,fitCount:0,likeCount:0};
+  const d = communityDelta[movieId];
+  d.qualitySum += qualityRating; d.qualityCount += 1;
+  d.fitSum += fitRating; d.fitCount += 1;
+  if(fitRating>=4) d.likeCount += 1;
+  saveCommunityDelta();
+}
+
+/* ---------- 4. INTERPRÉTATION DE LA RECHERCHE (LLM avec repli heuristique) ---------- */
+const GENRE_VOCAB=["comedy","action","thriller","scifi","romance","drama","crime","adventure","musical"];
+const MOOD_VOCAB=["funny","light","dark","feelgood","intense","cerebral","romantic","tense","uplifting","absurd"];
+const CONTEXT_VOCAB=["couple","friends","family","solo","evening"];
+
+async function parseQuery(text){
+  try{
+    const sys = `Tu transformes une requête de film en langage naturel (en français) en un objet JSON STRICT de critères structurés. Ne réponds QUE par du JSON valide, sans texte autour, sans balises markdown.
+Schéma :
+{
+ "genres": [sous-ensemble de ${JSON.stringify(GENRE_VOCAB)}],
+ "moods": [sous-ensemble de ${JSON.stringify(MOOD_VOCAB)}],
+ "context": [sous-ensemble de ${JSON.stringify(CONTEXT_VOCAB)}],
+ "countries": [pays mentionnés, ex "France"],
+ "actors": [noms d'acteurs mentionnés],
+ "year_min": nombre ou null,
+ "year_max": nombre ou null,
+ "max_runtime": nombre de minutes ou null,
+ "max_intensity": 0-10 ou null,
+ "max_violence": 0-10 ou null,
+ "max_complexity": 0-10 ou null,
+ "min_humor": 0-10 ou null
+}
+Tu NE dois PAS inventer de titres de films. Tu structures uniquement l'intention.`;
+    const resp = await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({
+        model:"claude-sonnet-4-6",
+        max_tokens:400,
+        system: sys,
+        messages:[{role:"user",content:text}]
+      })
+    });
+    const data = await resp.json();
+    const raw = data.content.map(b=>b.text||"").join("").trim();
+    const clean = raw.replace(/```json|```/g,"").trim();
+    const parsed = JSON.parse(clean);
+    parsed._source="llm";
+    return parsed;
+  }catch(e){
+    return heuristicParse(text);
+  }
+}
+
+function heuristicParse(text){
+  const t = text.toLowerCase();
+  const parsed = {genres:[],moods:[],context:[],countries:[],actors:[],year_min:null,year_max:null,max_runtime:null,max_intensity:null,max_violence:null,max_complexity:null,min_humor:null,_source:"heuristique"};
+  const map = {
+    "drôle":["comedy",["funny"]], "comédie":["comedy",["light"]], "rigolo":["comedy",["funny"]],
+    "action":["action",["intense"]], "thriller":["thriller",["tense"]], "polar":["crime",["dark"]],
+    "science-fiction":["scifi",["cerebral"]], "sci-fi":["scifi",["cerebral"]],
+    "romance":["romance",["romantic"]], "amour":["romance",["romantic"]],
+    "drame":["drama",[]],
+  };
+  for(const key in map){
+    if(t.includes(key)){ parsed.genres.push(map[key][0]); parsed.moods.push(...map[key][1]); }
+  }
+  if(t.includes("léger")||t.includes("pas prise de tête")) { parsed.moods.push("light"); parsed.max_complexity=4; parsed.max_intensity=4; }
+  if(t.includes("sombre")) parsed.moods.push("dark");
+  if(t.includes("intelligent")||t.includes("réfléch")) parsed.moods.push("cerebral");
+  if(t.includes("pas trop violent")||t.includes("sans violence")) parsed.max_violence=3;
+  if(t.includes("français")||t.includes("france")) parsed.countries.push("France");
+  if(t.includes("copine")||t.includes("copain")||t.includes("deux")||t.includes("couple")) parsed.context.push("couple");
+  if(t.includes("amis")||t.includes("potes")) parsed.context.push("friends");
+  const yearMatch = t.match(/années?\s*(19|20)?(\d0)/);
+  if(yearMatch){ const decade = parseInt((yearMatch[1]||"20")+yearMatch[2]); parsed.year_min=decade; parsed.year_max=decade+9; }
+  const runtimeMatch = t.match(/moins de\s*(\d)\s*h/);
+  if(runtimeMatch) parsed.max_runtime = parseInt(runtimeMatch[1])*60;
+  // acteurs connus mentionnés
+  const knownActors = ["russell crowe","keanu reeves","denzel washington","brad pitt","leonardo dicaprio",
+    "tom cruise","matt damon","bruce willis","keira knightley","daniel craig","jake gyllenhaal",
+    "tom hanks","al pacino","morgan freeman","scarlett johansson","margot robbie","ryan gosling",
+    "harrison ford","christian bale","paul giamatti"];
+  knownActors.forEach(a=>{ if(t.includes(a)) parsed.actors.push(a); });
+  parsed.genres=[...new Set(parsed.genres)]; parsed.moods=[...new Set(parsed.moods)]; parsed.context=[...new Set(parsed.context)];
+  return parsed;
+}
+
+function criteriaTags(parsed){
+  const tags=[];
+  (parsed.genres||[]).forEach(g=>tags.push(g));
+  (parsed.moods||[]).forEach(m=>tags.push(m));
+  (parsed.context||[]).forEach(c=>tags.push(c));
+  (parsed.countries||[]).forEach(c=>tags.push(c));
+  (parsed.actors||[]).forEach(a=>tags.push(a));
+  if(parsed.year_min) tags.push(`${parsed.year_min}–${parsed.year_max||''}`);
+  if(parsed.max_runtime) tags.push(`< ${Math.round(parsed.max_runtime/60)}h`);
+  return tags;
+}
+
+/** Version pour le nouveau moteur semantique (forme {required:{genres:[]}, moods:[], min:{}, max:{}}). Debug uniquement. */
+function semanticCriteriaTags(parsed){
+  const tags=[];
+  (parsed.required?.genres||[]).forEach(g=>tags.push(`genre obligatoire: ${g}`));
+  (parsed.moods||[]).forEach(m=>tags.push(`mood: ${m}`));
+  for(const k in (parsed.min||{})) tags.push(`min ${k}: ${parsed.min[k]}`);
+  for(const k in (parsed.max||{})) tags.push(`max ${k}: ${parsed.max[k]}`);
+  return tags;
+}
+
+/* ---------- 5. PROFIL UTILISATEUR (personnalisation progressive) ---------- */
+function buildUserProfile(){
+  const genreStats={}, runtimes=[];
+  userState.watchHistory.forEach(w=>{
+    const movie = MOVIES.concat(LIVE_MOVIES).find(m=>m.id===w.movieId);
+    if(!movie) return;
+    movie.genres.forEach(g=>{
+      if(!genreStats[g]) genreStats[g]={sum:0,count:0};
+      genreStats[g].sum += w.qualityRating; genreStats[g].count += 1;
+    });
+    runtimes.push({runtime:movie.runtime, rating:w.qualityRating});
+  });
+  let preferredRuntime = null;
+  if(runtimes.length){
+    const weighted = runtimes.reduce((a,r)=>a+r.runtime*r.rating,0);
+    const weightSum = runtimes.reduce((a,r)=>a+r.rating,0) || 1;
+    preferredRuntime = weighted/weightSum;
+  }
+  return {genreStats, preferredRuntime};
+}
+
+/* ---------- 6. MOTEUR DE SCORING ---------- */
+function scoreMovie(movie, parsed, profile){
+  // a) pertinence par rapport à la recherche (0-100)
+  let match=0, maxMatch=0;
+  if(parsed.genres && parsed.genres.length){
+    maxMatch+=40; if(movie.genres.some(g=>parsed.genres.includes(g))) match+=40;
+  }
+  if(parsed.moods && parsed.moods.length){
+    maxMatch+=25;
+    const overlap = movie.moods.filter(m=>parsed.moods.includes(m)).length;
+    match += Math.min(25, overlap*13);
+  }
+  if(parsed.countries && parsed.countries.length){
+    maxMatch+=10; if(parsed.countries.includes(movie.country)) match+=10;
+  }
+  if(parsed.actors && parsed.actors.length){
+    maxMatch+=15;
+    if(movie.actors.some(a=>parsed.actors.some(pa=>a.toLowerCase().includes(pa)))) match+=15;
+  }
+  if(parsed.year_min || parsed.year_max){
+    maxMatch+=10;
+    const okMin = !parsed.year_min || movie.year>=parsed.year_min;
+    const okMax = !parsed.year_max || movie.year<=parsed.year_max;
+    if(okMin && okMax) match+=10;
+  }
+  maxMatch = maxMatch || 1;
+  let searchMatch = (match/maxMatch)*100;
+  if(parsed.max_runtime && movie.runtime>parsed.max_runtime) searchMatch *= 0.35;
+  if(parsed.max_violence!=null && movie.violence>parsed.max_violence) searchMatch *= 0.4;
+  if(parsed.max_intensity!=null && movie.intensity>parsed.max_intensity) searchMatch *= 0.5;
+  if(parsed.max_complexity!=null && movie.complexity>parsed.max_complexity) searchMatch *= 0.6;
+  if(parsed.min_humor!=null && movie.humor<parsed.min_humor) searchMatch *= 0.6;
+
+  // b) adéquation historique communautaire pour ce type de recherche (proxy : fitAvg du film)
+  const stats = getMovieStats(movie.id);
+  const searchFit = (stats.fitAvg/5)*100;
+
+  // c) qualité communautaire
+  const quality = (stats.qualityAvg/5)*100;
+
+  // d) personnalisation
+  let personalization=50;
+  const gStat = movie.genres.map(g=>profile.genreStats[g]).filter(Boolean);
+  if(gStat.length){
+    const avg = gStat.reduce((a,s)=>a+s.sum/s.count,0)/gStat.length;
+    personalization = (avg/5)*100;
+  }
+  if(profile.preferredRuntime){
+    const diff = Math.abs(movie.runtime - profile.preferredRuntime);
+    personalization = personalization*0.7 + Math.max(0,100-diff)*0.3;
+  }
+
+  // e) popularité (log-scale, pour éviter l'effet de bulle : poids volontairement faible)
+  const popularity = Math.min(100, Math.log10(stats.qualityCount+1)*28);
+
+  const total =
+    searchMatch * (WEIGHTS.SEARCH_MATCH_WEIGHT/100) +
+    searchFit * (WEIGHTS.SEARCH_FIT_WEIGHT/100) +
+    quality * (WEIGHTS.QUALITY_WEIGHT/100) +
+    personalization * (WEIGHTS.PERSONALIZATION_WEIGHT/100) +
+    popularity * (WEIGHTS.POPULARITY_WEIGHT/100);
+
+  return {total, searchMatch, searchFit, quality, personalization, popularity};
+}
+
+/* ---------- 6bis. CONTRAINTES EXPLICITES (filtrage DUR, pas une simple pondération) ----------
+   Une contrainte explicite (durée max, acteur demandé) élimine un film de la
+   liste des candidats — elle n'est jamais "compensée" par une bonne note. */
+function passesHardConstraints(movie, parsed){
+  if(parsed.max_runtime && movie.runtime > parsed.max_runtime) return false;
+  if(parsed.actors && parsed.actors.length){
+    const hasActor = movie.actors.some(a=>parsed.actors.some(pa=>a.toLowerCase().includes(pa)));
+    if(!hasActor) return false;
+  }
+  return true;
+}
+
+function recommend(parsed, excludeIds, n=3){
+  const profile = buildUserProfile();
+  const watchedIds = new Set(userState.watchHistory.map(w=>w.movieId));
+  const pool = MOVIES.concat(LIVE_MOVIES);
+  let candidates = pool.filter(m=>!excludeIds.has(m.id) && !watchedIds.has(m.id));
+  // 1) contraintes explicites : filtrage dur d'abord
+  const hardFiltered = candidates.filter(m=>passesHardConstraints(m,parsed));
+  // repli gracieux : si le filtrage dur ne laisse rien (catalogue encore limité), on
+  // relâche uniquement pour ne jamais renvoyer un écran vide — mais on le signale.
+  let relaxed = false;
+  if(hardFiltered.length===0 && candidates.length>0){ relaxed = true; }
+  else { candidates = hardFiltered; }
+  const scored = candidates.map(m=>({movie:m, score:scoreMovie(m,parsed,profile)}));
+  scored.sort((a,b)=>b.score.total-a.score.total);
+  const results = scored.slice(0,n);
+  results.relaxed = relaxed;
+  return results;
+}
+
+function whyText(movie, parsed){
+  const bits=[];
+  if(parsed.genres&&parsed.genres.length) bits.push(labelGenres(parsed.genres));
+  if(parsed.countries&&parsed.countries.length) bits.push(parsed.countries.join(", "));
+  if(parsed.moods&&parsed.moods.length) bits.push(labelMoods(parsed.moods));
+  if(parsed.year_min) bits.push(`des années ${parsed.year_min}`);
+  if(parsed.max_runtime) bits.push(`de moins de ${Math.round(parsed.max_runtime/60)}h`);
+  const intro = bits.length ? `Tu cherchais ${bits.join(", ")}.` : `Tu cherchais quelque chose de précis.`;
+  const rt = `${Math.floor(movie.runtime/60)}h${String(movie.runtime%60).padStart(2,'0')}`;
+  return `${intro} Celui-ci dure ${rt} et correspond bien à ce type de recherche.`;
+}
+function labelGenres(gs){ const L={comedy:"une comédie",action:"de l'action",thriller:"un thriller",scifi:"de la science-fiction",romance:"une romance",drama:"un drame",crime:"un polar",adventure:"de l'aventure",musical:"une comédie musicale"}; return gs.map(g=>L[g]||g).join(" / "); }
+function labelMoods(ms){ const L={funny:"drôle",light:"léger",dark:"sombre",feelgood:"feel-good",intense:"intense",cerebral:"qui fait réfléchir",romantic:"romantique",tense:"tendu",uplifting:"positif",absurd:"absurde"}; return ms.map(m=>L[m]||m).join(", "); }
+
+/* =========================================================================
+   ÉTAT DE L'APPLICATION & RENDU
+   ========================================================================= */
+let view = "home"; // home | results | history
+let lastQuery = "";
+let lastParsed = null;
+let currentSearchId = null;
+let sessionShown = new Set();
+let currentResults = [];
+let isLoading = false;
+let ratingModalMovie = null;
+let starsFit = 0, starsQuality = 0;
+let showCriteria = false;
+
+function render(){ document.getElementById("app").innerHTML = App(); attachHandlers(); }
+
+function App(){
+  return Nav() + (
+    view==="home" ? Home() :
+    view==="results" ? Results() :
+    History()
+  ) + (ratingModalMovie ? RatingModal() : "");
+}
+
+function Nav(){
+  return `
+  <div class="nav">
+    <div class="brand" data-nav="home"><span class="dot"></span> MOVIE FINDER</div>
+    ${BACKEND_URL ? `<div style="font-size:10.5px;color:var(--gold-soft);">🟢 Base réelle · ${backendCatalogSize} films</div>` : ""}
+    <div class="navlinks">
+      <button class="${view==='home'||view==='results'?'active':''}" data-nav="home">Recherche</button>
+      <button class="${view==='history'?'active':''}" data-nav="history">Mon historique</button>
+    </div>
+  </div>`;
+}
+
+function Home(){
+  return `
+  <div class="hero">
+    <h1>Tu sais ce que tu veux regarder.<br/>Tu ne sais juste pas quoi.</h1>
+    <p class="sub">Décris ton envie en une phrase — Movie Finder te propose 3 films, pas 50.</p>
+    <div class="search-wrap">
+      <textarea id="query-input" rows="1" placeholder="Décris le film que tu veux regarder…">${escapeHtml(lastQuery)}</textarea>
+      <button class="btn-find" id="find-btn">Trouver mon film</button>
+    </div>
+    <div class="chips">
+      <div class="chip" data-example="Je veux quelque chose de drôle et léger">😂 Drôle et léger</div>
+      <div class="chip" data-example="Je veux un film d'action">🔥 Action</div>
+      <div class="chip" data-example="Je veux un film intelligent qui fait réfléchir">🧠 Intelligent</div>
+      <div class="chip" data-example="Je veux une romance">❤️ Romance</div>
+      <div class="chip" data-example="Je veux un thriller">😱 Thriller</div>
+      <div class="chip" data-example="Je veux un film français">🇫🇷 Français</div>
+    </div>
+  </div>
+  <div class="ad">PUBLICITÉ</div>
+  `;
+}
+
+function Results(){
+  if(isLoading){
+    return `<div class="loading"><div class="spinner"></div>Movie Finder analyse ta demande…</div>`;
+  }
+  const cards = currentResults.map(r=>Card(r)).join("");
+  const relaxedNote = currentResults.relaxed ? `<p style="text-align:center;color:var(--crimson-soft);font-size:12px;margin:-14px 0 18px;">Aucun film du catalogue actuel ne respecte strictement toutes tes contraintes — résultats élargis.</p>` : "";
+  return `
+  <div class="results-head">
+    <h2>3 films qui devraient te plaire</h2>
+    <p>« ${escapeHtml(lastQuery)} »</p>
+  </div>
+  ${relaxedNote}
+  <div class="criteria-toggle"><button id="toggle-criteria">${showCriteria?"Masquer":"Voir"} les critères compris</button></div>
+  ${showCriteria ? `<div class="criteria-box">${(lastParsed?.required ? semanticCriteriaTags(lastParsed) : criteriaTags(lastParsed)).map(t=>`<span class="tag-pill">${escapeHtml(t)}</span>`).join("") || "<span class='tag-pill'>aucun critère strict détecté</span>"}</div>` : ""}
+  <div class="cards" style="margin-top:24px;">${cards}</div>
+  <div class="ad">PUBLICITÉ</div>
+  <div class="refine">
+    <p>Aucun ne te tente ?</p>
+    <button class="btn-again" id="btn-more">🎲 Propose-moi 3 autres films</button><br/>
+    <button class="btn-newsearch" data-nav="home">Faire une nouvelle recherche</button>
+  </div>
+  `;
+}
+
+function Card(r){
+  const m = r.movie;
+  const stats = getMovieStats(m.id);
+  const watched = userState.watchHistory.some(w=>w.movieId===m.id);
+  const avail = simulatedAvailability(m.id);
+  return `
+  <div class="card ${watched?'watched':''}">
+    ${watched?'<div class="badge-done">Vu ✓</div>':''}
+    ${m.sourceLive?'<div class="badge-live">Wikidata · live</div>':''}
+    <div class="poster" style="background:${m.color}">${escapeHtml(m.title)}
+      <span class="yr">${m.year}</span>
+      <span class="rt">${Math.floor(m.runtime/60)}h${String(m.runtime%60).padStart(2,'0')}</span>
+    </div>
+    <div class="card-body">
+      <div class="card-title">${escapeHtml(m.title)}</div>
+      <div class="genres-row">${m.genres.map(g=>`<span class="genre-tag">${labelGenres([g])}</span>`).join("")}</div>
+      <div class="synopsis">${escapeHtml(m.synopsis)}</div>
+      <div class="why"><b>Pourquoi ce film ?</b>${r.explanation ? escapeHtml(r.explanation) : whyText(m,lastParsed)}</div>
+      <div class="meta-row">
+        <span class="quality-stars">★ ${stats.qualityAvg.toFixed(1)}/5 qualité</span>
+        <span class="like-pct">❤️ ${stats.likePct}% ont aimé</span>
+      </div>
+      <div class="avail-row">${avail.length?avail.map(p=>`<span class="avail-badge">${p}</span>`).join(""):'<span class="avail-badge">Non listé</span>'}</div>
+      <div class="avail-note">Disponibilité simulée — prototype</div>
+      ${watched?'':`<button class="btn-watched" data-watched="${m.id}">J'ai vu ce film</button>`}
+    </div>
+  </div>`;
+}
+
+function RatingModal(){
+  const m = ratingModalMovie;
+  return `
+  <div class="overlay" id="modal-overlay">
+    <div class="modal">
+      <h3>Tu as vu <span class="mv-title">${escapeHtml(m.title)}</span></h3>
+      <div class="q">Est-ce qu'il correspondait à ta recherche ?</div>
+      <div class="stars-input fit" id="stars-fit">${starRow(starsFit)}</div>
+      <div class="q">Et le film en lui-même ?</div>
+      <div class="stars-input" id="stars-quality">${starRow(starsQuality)}</div>
+      <div class="modal-actions">
+        <button class="btn-cancel" id="modal-cancel">Annuler</button>
+        <button class="btn-save" id="modal-save" ${(!starsFit||!starsQuality)?'disabled':''}>Enregistrer</button>
+      </div>
+    </div>
+  </div>`;
+}
+function starRow(value){
+  let out="";
+  for(let i=1;i<=5;i++) out+=`<span data-star="${i}" class="${i<=value?'filled':''}">★</span>`;
+  return out;
+}
+
+function History(){
+  const hist = [...userState.watchHistory].sort((a,b)=>new Date(b.watchedAt)-new Date(a.watchedAt));
+  if(!hist.length){
+    return `<div class="empty-state"><div class="display">Aucun film vu pour l'instant</div>Fais une recherche, regarde un film, note-le — il apparaîtra ici.</div>`;
+  }
+  const genreCount={}, genreQuality={};
+  let qualitySum=0;
+  hist.forEach(w=>{
+    const m=MOVIES.concat(LIVE_MOVIES).find(x=>x.id===w.movieId); if(!m) return;
+    m.genres.forEach(g=>{
+      genreCount[g]=(genreCount[g]||0)+1;
+      if(!genreQuality[g]) genreQuality[g]={sum:0,count:0};
+      genreQuality[g].sum+=w.qualityRating; genreQuality[g].count+=1;
+    });
+    qualitySum += w.qualityRating;
+  });
+  const mostWatched = Object.entries(genreCount).sort((a,b)=>b[1]-a[1])[0];
+  const favorite = Object.entries(genreQuality).map(([g,s])=>[g,s.sum/s.count]).sort((a,b)=>b[1]-a[1])[0];
+  const avgQuality = (qualitySum/hist.length).toFixed(1);
+
+  const rows = hist.map(w=>{
+    const m = MOVIES.concat(LIVE_MOVIES).find(x=>x.id===w.movieId);
+    if(!m) return "";
+    const d = new Date(w.watchedAt);
+    return `<div class="hist-row">
+      <div class="hist-poster" style="background:${m.color}">${escapeHtml(m.title.slice(0,14))}</div>
+      <div class="hist-info">
+        <div class="hist-title">${escapeHtml(m.title)}</div>
+        <div class="hist-date">Vu le ${d.toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})}</div>
+        <div class="hist-ratings">
+          <span><span class="lbl">Qualité</span>${'★'.repeat(w.qualityRating)}${'☆'.repeat(5-w.qualityRating)}</span>
+          <span><span class="lbl">Adéquation</span>${'★'.repeat(w.fitRating)}${'☆'.repeat(5-w.fitRating)}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+
+  return `
+  <h2 style="text-align:center;margin-bottom:20px;">Mes films vus</h2>
+  <div class="stats-grid">
+    <div class="stat-box"><div class="num">${hist.length}</div><div class="lbl">Films vus</div></div>
+    <div class="stat-box"><div class="num">${favorite?labelGenres([favorite[0]]).replace(/^(une |un |de la |de l'|des )/,''):'—'}</div><div class="lbl">Genre préféré</div></div>
+    <div class="stat-box"><div class="num">${avgQuality}/5</div><div class="lbl">Note moyenne</div></div>
+    <div class="stat-box"><div class="num">${mostWatched?labelGenres([mostWatched[0]]).replace(/^(une |un |de la |de l'|des )/,''):'—'}</div><div class="lbl">Genre le plus regardé</div></div>
+  </div>
+  ${rows}
+  <div class="ad">PUBLICITÉ</div>
+  `;
+}
+
+function escapeHtml(s){ return (s||"").replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+/* ---------- HANDLERS ---------- */
+function attachHandlers(){
+  document.querySelectorAll("[data-nav]").forEach(el=>el.onclick=()=>{ view=el.dataset.nav; render(); });
+  const findBtn = document.getElementById("find-btn");
+  if(findBtn) findBtn.onclick = ()=>doSearch(document.getElementById("query-input").value.trim());
+  const qInput = document.getElementById("query-input");
+  if(qInput) qInput.onkeydown = (e)=>{ if(e.key==="Enter" && !e.shiftKey){ e.preventDefault(); doSearch(qInput.value.trim()); } };
+  document.querySelectorAll("[data-example]").forEach(el=>el.onclick=()=>doSearch(el.dataset.example));
+  const moreBtn = document.getElementById("btn-more");
+  if(moreBtn) moreBtn.onclick = ()=>doMore();
+  const toggleCriteria = document.getElementById("toggle-criteria");
+  if(toggleCriteria) toggleCriteria.onclick = ()=>{ showCriteria=!showCriteria; render(); };
+  document.querySelectorAll("[data-watched]").forEach(el=>el.onclick=()=>{
+    ratingModalMovie = MOVIES.concat(LIVE_MOVIES).find(m=>m.id===el.dataset.watched);
+    starsFit=0; starsQuality=0; render();
+  });
+  const overlay = document.getElementById("modal-overlay");
+  if(overlay) overlay.onclick = (e)=>{ if(e.target===overlay) closeModal(); };
+  const cancel = document.getElementById("modal-cancel");
+  if(cancel) cancel.onclick = closeModal;
+  const starsFitEl = document.getElementById("stars-fit");
+  if(starsFitEl) starsFitEl.querySelectorAll("span").forEach(s=>s.onclick=()=>{ starsFit=parseInt(s.dataset.star); render(); });
+  const starsQualityEl = document.getElementById("stars-quality");
+  if(starsQualityEl) starsQualityEl.querySelectorAll("span").forEach(s=>s.onclick=()=>{ starsQuality=parseInt(s.dataset.star); render(); });
+  const saveBtn = document.getElementById("modal-save");
+  if(saveBtn) saveBtn.onclick = saveRating;
+}
+
+function closeModal(){ ratingModalMovie=null; render(); }
+
+async function saveRating(){
+  if(!starsFit||!starsQuality) return;
+  const m = ratingModalMovie;
+  userState.watchHistory.push({movieId:m.id, searchId:currentSearchId, fitRating:starsFit, qualityRating:starsQuality, watchedAt:new Date().toISOString()});
+  recordRating(m.id, starsFit, starsQuality);
+  await saveUserState();
+  if(BACKEND_URL){
+    try{
+      const userId = await getUserId();
+      await fetch(BACKEND_URL+"/api/rating", {
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({userId, movieId:m.id, searchId:currentSearchId, fitRating:starsFit, qualityRating:starsQuality})
+      });
+    }catch(e){ console.warn("Note non synchronisée avec le serveur (conservée en local) :", e.message); }
+  }
+  ratingModalMovie=null;
+  render();
+}
+
+async function doSearch(text){
+  if(!text) return;
+  lastQuery = text;
+  view = "results";
+  isLoading = true;
+  sessionShown = new Set();
+  showCriteria = false;
+  render();
+
+  // --- Mode moteur semantique (prioritaire si detecte) : le frontend NE fait AUCUN
+  // parsing/scoring lui-meme ici, tout vient du serveur (cf. server/semantic-search.js). ---
+  if(SEMANTIC_BACKEND_URL){
+    try{
+      const resp = await fetch(SEMANTIC_BACKEND_URL+"/api/semantic-search", {
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({query:text, excludeIds:[...sessionShown]})
+      });
+      const data = await resp.json();
+      if(!resp.ok) throw new Error(data.error||"erreur moteur semantique");
+      lastParsed = data.parsed;
+      currentResults = data.results.map(r=>({movie:r.movie, score:r.score, explanation:r.explanation}));
+      data.results.forEach(r=>{ sessionShown.add(r.movie.id); mergeIntoLiveMovies(r.movie); });
+      isLoading=false; render();
+      return;
+    }catch(e){
+      console.warn("Moteur semantique indisponible, repli sur le fonctionnement existant :", e.message);
+      SEMANTIC_BACKEND_URL = null; // pas de nouvelle tentative dans cette session
+    }
+  }
+
+  const parsed = await parseQuery(text);
+  lastParsed = parsed;
+
+  if(BACKEND_URL){
+    try{
+      const userId = await getUserId();
+      const resp = await fetch(BACKEND_URL+"/api/recommend", {
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({parsed, query:text, userId, excludeIds:[...sessionShown]})
+      });
+      const data = await resp.json();
+      if(!resp.ok) throw new Error(data.error||"erreur serveur");
+      currentSearchId = data.searchId;
+      currentResults = data.results.map(r=>({movie:r.movie, score:r.score}));
+      currentResults.relaxed = data.results[0]?.relaxed;
+      data.results.forEach(r=>{ backendStatsCache[r.movie.id]=r.stats; sessionShown.add(r.movie.id); mergeIntoLiveMovies(r.movie); });
+      isLoading=false; render();
+      return;
+    }catch(e){
+      console.warn("Backend indisponible, repli sur le catalogue local :", e.message);
+      BACKEND_URL = null; // on ne réessaie pas à chaque appel dans la même session
+    }
+  }
+
+  currentSearchId = "s_"+Date.now();
+  userState.searches.push({id:currentSearchId, query:text, parsedQuery:parsed, createdAt:new Date().toISOString()});
+  saveUserState();
+  const results = recommend(parsed, sessionShown, 3);
+  results.forEach(r=>sessionShown.add(r.movie.id));
+  currentResults = results;
+  isLoading = false;
+  render();
+}
+
+async function doMore(){
+  isLoading = true;
+  render();
+
+  if(SEMANTIC_BACKEND_URL){
+    try{
+      const resp = await fetch(SEMANTIC_BACKEND_URL+"/api/semantic-search", {
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({query:lastQuery, excludeIds:[...sessionShown]})
+      });
+      const data = await resp.json();
+      if(!resp.ok) throw new Error(data.error||"erreur moteur semantique");
+      const results = data.results.map(r=>({movie:r.movie, score:r.score, explanation:r.explanation}));
+      data.results.forEach(r=>{ sessionShown.add(r.movie.id); mergeIntoLiveMovies(r.movie); });
+      currentResults = results.length ? results : currentResults;
+      isLoading=false; render();
+      return;
+    }catch(e){
+      console.warn("Moteur semantique indisponible pour '3 autres', repli existant :", e.message);
+    }
+  }
+
+  if(BACKEND_URL){
+    try{
+      const userId = await getUserId();
+      const resp = await fetch(BACKEND_URL+"/api/recommend", {
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({parsed:lastParsed, userId, excludeIds:[...sessionShown], searchId:currentSearchId})
+      });
+      const data = await resp.json();
+      if(!resp.ok) throw new Error(data.error||"erreur serveur");
+      const results = data.results.map(r=>({movie:r.movie, score:r.score}));
+      results.relaxed = data.results[0]?.relaxed;
+      data.results.forEach(r=>{ backendStatsCache[r.movie.id]=r.stats; sessionShown.add(r.movie.id); mergeIntoLiveMovies(r.movie); });
+      currentResults = results.length ? results : currentResults;
+      isLoading=false; render();
+      return;
+    }catch(e){
+      console.warn("Backend indisponible pour '3 autres', repli local :", e.message);
+    }
+  }
+
+  await new Promise(res=>setTimeout(res,550));
+  const results = recommend(lastParsed, sessionShown, 3);
+  results.forEach(r=>sessionShown.add(r.movie.id));
+  currentResults = results.length ? results : currentResults;
+  isLoading = false;
+  render();
+}
+
+/* ---------- BOOT ---------- */
+(async function init(){
+  await loadState();
+  await detectBackend();
+  await detectSemanticBackend();
+  render();
+})();
+</script>
+</body>
+</html>

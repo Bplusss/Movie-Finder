@@ -1,0 +1,25 @@
+[
+  {
+    "version": "3.0",
+    "date": null,
+    "changes": ["Architecture retrieval -> ranking initiale (filtres durs puis classement semantique par famille)"],
+    "testResults": "offline-test-movie-search-v3.js : PASS",
+    "feedbackJustification": null
+  },
+  {
+    "version": "3.1",
+    "date": null,
+    "changes": ["Aucun changement de code -- gel de reference"],
+    "fileHashes": { "pipeline/lib/movie-search-v3.js": "756359a4db097a27be1958de8405ac91" },
+    "testResults": "offline-test-movie-search-v3.js : PASS",
+    "feedbackJustification": null
+  },
+  {
+    "version": "3.2",
+    "date": null,
+    "changes": ["AMBIANCE_LEXICON += rire, fait rire, comique, hilarant, drole, amusant"],
+    "fileHashes": { "pipeline/lib/movie-search-v3.js": "742f972b8836c8586830a13ea1cde243" },
+    "testResults": "offline-test-movie-search-v3.js : PASS (nouveau cas 'qui fait rire' inclus)",
+    "feedbackJustification": "Requete reelle dans feedback-log.json : 'un film de moins de 100 minutes qui fait rire' -> resultats d'horreur au lieu de comedies"
+  }
+]

@@ -1,0 +1,7 @@
+{
+  "_comment": "Remplis ces URLs après les avoir trouvees sur https://databus.dbpedia.org/dbpedia/collections/latest-core (variante anglaise 'en' de chaque jeu de donnees). Laisse null ce que tu ne trouves pas (ex. si 'long abstracts' a ete fusionne avec 'abstracts') - le POC gerera l'absence proprement.",
+  "labels_en": null,
+  "abstracts_en": null,
+  "long_abstracts_en": null,
+  "wikidata_links_en": null
+}
