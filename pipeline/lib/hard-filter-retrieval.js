@@ -11,6 +11,13 @@ function matchesPerson(moviePersons, requiredNames) {
   return requiredNames.every(name => normalizedMovie.includes(normalizeName(name)));
 }
 
+/** Pays : correspondance en sous-chaine (insensible casse/accents), car le libelle exact stocke n'est pas garanti (FR ou EN). */
+function matchesCountry(movieCountries, requiredVariants) {
+  if (!requiredVariants || !requiredVariants.length) return true;
+  const normalizedMovie = (movieCountries || []).map(normalizeName);
+  return requiredVariants.some(variant => normalizedMovie.some(c => c.includes(normalizeName(variant))));
+}
+
 /** Applique tous les filtres. Renvoie le pool reduit — deterministe, jamais un score. */
 function applyHardFilters(catalog, filters) {
   return catalog.filter(m => {
@@ -21,6 +28,7 @@ function applyHardFilters(catalog, filters) {
     if (filters.runtime_min != null && (!m.facts.runtime_minutes || m.facts.runtime_minutes < filters.runtime_min)) return false;
     if (filters.runtime_max != null && (!m.facts.runtime_minutes || m.facts.runtime_minutes > filters.runtime_max)) return false;
     if (filters.genres && filters.genres.length && !filters.genres.some(g => (m.facts.genres || []).includes(g))) return false;
+    if (!matchesCountry(m.facts.countries, filters.countryVariants)) return false;
     return true;
   });
 }
@@ -35,7 +43,8 @@ function checkCompliance(movie, filters) {
   if (filters.runtime_min != null && (!movie.facts.runtime_minutes || movie.facts.runtime_minutes < filters.runtime_min)) violations.push("runtime_min");
   if (filters.runtime_max != null && (!movie.facts.runtime_minutes || movie.facts.runtime_minutes > filters.runtime_max)) violations.push("runtime_max");
   if (filters.genres && filters.genres.length && !filters.genres.some(g => (movie.facts.genres || []).includes(g))) violations.push("genres");
+  if (!matchesCountry(movie.facts.countries, filters.countryVariants)) violations.push("countries");
   return { compliant: violations.length === 0, violations };
 }
 
-module.exports = { applyHardFilters, checkCompliance, matchesPerson };
+module.exports = { applyHardFilters, checkCompliance, matchesPerson, matchesCountry };

@@ -14,11 +14,14 @@ const cors = require("cors");
 const fs = require("fs");
 const path = require("path");
 const { loadCatalog } = require("../pipeline/lib/local-catalog");
+const { loadCatalogFromSupabase } = require("../pipeline/lib/load-catalog-from-supabase");
 const { buildGazetteer } = require("../pipeline/lib/entity-gazetteer");
 const { searchV3 } = require("../pipeline/lib/movie-search-v3"); // INCHANGE, importe tel quel
 const { saveFeedbackToSupabase } = require("./feedback-store-supabase");
+const { Pool } = require("pg");
 
 const PORT = process.env.PROTOTYPE_PORT || 3003;
+const CATALOG_SOURCE = process.env.CATALOG_SOURCE || "json"; // "json" par defaut pendant la migration -- jamais bascule silencieusement
 const RESULTS_DIR = path.join(__dirname, "..", "pipeline", "test-results");
 const FINAL_CATALOG_PATH = process.env.PROTOTYPE_CATALOG || path.join(RESULTS_DIR, "semantic-enrichment-1018-final.json");
 const WIKIPEDIA_PATH = path.join(RESULTS_DIR, "wikipedia-synopsis-1018.json");
@@ -40,11 +43,21 @@ function buildTextFields(finalCatalogMovies, wikipediaResults) {
   });
 }
 
-function ensureLoaded() {
+async function ensureLoaded() {
   if (CATALOG) return;
-  const { movies } = loadCatalog(FINAL_CATALOG_PATH);
-  const wikipediaResults = JSON.parse(fs.readFileSync(WIKIPEDIA_PATH, "utf8"));
-  CATALOG = buildTextFields(movies, wikipediaResults);
+
+  if (CATALOG_SOURCE === "supabase") {
+    if (!process.env.DATABASE_URL) throw new Error("CATALOG_SOURCE=supabase mais DATABASE_URL n'est pas definie -- aucun fallback silencieux, corrige la configuration ou repasse a CATALOG_SOURCE=json.");
+    const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+    const { movies } = await loadCatalogFromSupabase(pool); // introText/synopsisOnlyText DEJA fusionnes cote Supabase
+    CATALOG = movies;
+  } else if (CATALOG_SOURCE === "json") {
+    const { movies } = loadCatalog(FINAL_CATALOG_PATH);
+    const wikipediaResults = JSON.parse(fs.readFileSync(WIKIPEDIA_PATH, "utf8"));
+    CATALOG = buildTextFields(movies, wikipediaResults);
+  } else {
+    throw new Error(`CATALOG_SOURCE invalide : "${CATALOG_SOURCE}" (attendu "json" ou "supabase") -- aucun fallback silencieux.`);
+  }
   GAZETTEER = buildGazetteer(CATALOG);
 
   const embCacheSynopsis = loadJson(EMB_CACHE_SYNOPSIS, {});
@@ -120,14 +133,17 @@ function createApp() {
   app.get("/prototype-v3-helpers.js", (req, res) => res.sendFile(path.join(PROJECT_ROOT, "prototype-v3-helpers.js")));
   app.get("/", (req, res) => res.sendFile(path.join(PROJECT_ROOT, "prototype-v3.html")));
 
-  app.get("/api/health", (req, res) => {
-    try { ensureLoaded(); res.json({ ok: true, catalogSize: CATALOG.length }); }
+  app.get("/api/health", async (req, res) => {
+    try {
+      await ensureLoaded();
+      res.json({ ok: true, catalogSize: CATALOG.length, catalogSource: CATALOG_SOURCE });
+    }
     catch (e) { res.status(500).json({ ok: false, error: e.message }); }
   });
 
   app.post("/api/search", async (req, res) => {
     try {
-      ensureLoaded();
+      await ensureLoaded();
       const { status, body } = await handleSearch(CATALOG, GAZETTEER, EMB_OPTS, req.body);
       res.status(status).json(body);
     } catch (e) { console.error(e); res.status(500).json({ error: e.message }); }

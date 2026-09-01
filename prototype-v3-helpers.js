@@ -14,6 +14,33 @@
     adventure: "🗺️ Aventure", fantasy: "🐉 Fantastique", documentary: "📽️ Documentaire", war: "⚔️ Guerre",
   };
 
+  // Traduction lisible des variantes de pays extraites par le parseur
+  // (voir COUNTRY_WORDS dans structured-query-parser.js). Chaque cle
+  // "canonique" ci-dessous correspond a UNE des variantes possibles
+  // generees pour ce pays -- on affiche juste un drapeau/libelle une fois
+  // qu'on detecte n'importe laquelle des variantes de ce groupe.
+  const COUNTRY_DISPLAY = [
+    { flag: "🇫🇷", label: "Film français", variants: ["france"] },
+    { flag: "🇺🇸", label: "Film américain", variants: ["etats-unis", "united states", "usa", "amerique"] },
+    { flag: "🇬🇧", label: "Film britannique", variants: ["royaume-uni", "united kingdom", "grande-bretagne", "angleterre"] },
+    { flag: "🇩🇪", label: "Film allemand", variants: ["allemagne", "germany"] },
+    { flag: "🇮🇹", label: "Film italien", variants: ["italie", "italy"] },
+    { flag: "🇯🇵", label: "Film japonais", variants: ["japon", "japan"] },
+    { flag: "🇪🇸", label: "Film espagnol", variants: ["espagne", "spain"] },
+    { flag: "🇰🇷", label: "Film coréen", variants: ["coree", "korea"] },
+    { flag: "🇨🇳", label: "Film chinois", variants: ["chine", "china"] },
+    { flag: "🇨🇦", label: "Film canadien", variants: ["canada"] },
+  ];
+
+  function countryChipsFor(countryVariants) {
+    if (!countryVariants || !countryVariants.length) return [];
+    const chips = [];
+    for (const c of COUNTRY_DISPLAY) {
+      if (c.variants.some(v => countryVariants.includes(v))) chips.push(`${c.flag} ${c.label}`);
+    }
+    return chips;
+  }
+
   const IRRELEVANCE_REASONS = [
     "Mauvais sujet", "Mauvais genre", "Mauvaise époque", "Mauvais acteur/réalisateur", "Autre",
   ];
@@ -46,6 +73,7 @@
     if (f.genres && f.genres.length) chips.push(f.genres.map(g => GENRE_LABELS[g] || `🎭 ${g}`).join(" "));
     if (f.actors && f.actors.length) chips.push(`👤 ${f.actors.join(", ")}`);
     if (f.directors && f.directors.length) chips.push(`🎬 réalisé par ${f.directors.join(", ")}`);
+    chips.push(...countryChipsFor(f.countryVariants));
     const yearChip = formatYearChip(f);
     if (yearChip) chips.push(yearChip);
     chips.push(...formatRuntimeChip(f));
@@ -60,6 +88,8 @@
     if (f.actors && f.actors.length) parts.push(`👤 ${f.actors.join(", ")} est présent dans le film.`);
     if (f.directors && f.directors.length) parts.push(`🎬 Réalisé par ${f.directors.join(", ")}.`);
     if (f.genres && f.genres.length) parts.push(`${f.genres.map(g => GENRE_LABELS[g] || g).join(", ")} — correspond au registre demandé.`);
+    const countryChips = countryChipsFor(f.countryVariants);
+    if (countryChips.length) parts.push(`${countryChips.join(", ")}.`);
     const d = result.detail || {};
     if (data.semantic_query && data.semantic_query.trim() && (d.lexical || d.embedding)) {
       parts.push(`🎯 L'histoire correspond à votre recherche de « ${data.semantic_query.trim()} ».`);

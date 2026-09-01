@@ -103,6 +103,39 @@ function extractGenres(text) {
   return { genres: [...new Set(genres)], residual };
 }
 
+// Pays : le format exact stocke dans facts.countries n'est pas connu avec
+// certitude (libelles FR ou EN selon l'import Wikidata) — chaque mot
+// declencheur est donc associe a PLUSIEURS variantes acceptables, matchees
+// en sous-chaine insensible a la casse/accents cote hard-filter-retrieval.js.
+const COUNTRY_WORDS = {
+  "francais": ["france"], "francaise": ["france"],
+  "americain": ["etats-unis", "united states", "usa", "amerique"], "americaine": ["etats-unis", "united states", "usa", "amerique"],
+  "britannique": ["royaume-uni", "united kingdom", "grande-bretagne", "angleterre"],
+  "anglais": ["royaume-uni", "united kingdom", "angleterre"], "anglaise": ["royaume-uni", "united kingdom", "angleterre"],
+  "allemand": ["allemagne", "germany"], "allemande": ["allemagne", "germany"],
+  "italien": ["italie", "italy"], "italienne": ["italie", "italy"],
+  "japonais": ["japon", "japan"], "japonaise": ["japon", "japan"],
+  "espagnol": ["espagne", "spain"], "espagnole": ["espagne", "spain"],
+  "coreen": ["coree", "korea"], "coreenne": ["coree", "korea"],
+  "chinois": ["chine", "china"], "chinoise": ["chine", "china"],
+  "canadien": ["canada"], "canadienne": ["canada"],
+};
+
+/** Pays : retire les mots matches du residuel, renvoie les variantes acceptables (pas un libelle unique — voir COUNTRY_WORDS). */
+function extractCountries(text) {
+  const variants = [];
+  let residual = text;
+  for (const word in COUNTRY_WORDS) {
+    const normalizedWord = normalizeName(word);
+    const re = new RegExp(`\\b${normalizedWord}\\b`);
+    if (re.test(residual)) {
+      variants.push(...COUNTRY_WORDS[word]);
+      residual = residual.replace(re, "").replace(/\s+/g, " ").trim();
+    }
+  }
+  return { countryVariants: [...new Set(variants)], residual };
+}
+
 /**
  * Parseur complet. gazetteer = {actorNames, directorNames} construit depuis
  * le vrai catalogue (voir entity-gazetteer.js). Ne modifie jamais le moteur
@@ -126,6 +159,9 @@ function parseStructuredQuery(queryText, gazetteer) {
   const genreResult = extractGenres(normalized);
   normalized = genreResult.residual;
 
+  const countryResult = extractCountries(normalized);
+  normalized = countryResult.residual;
+
   return {
     filters: {
       actors: actorResult.found,
@@ -133,9 +169,10 @@ function parseStructuredQuery(queryText, gazetteer) {
       year_min: yearResult.year_min, year_max: yearResult.year_max,
       runtime_min: runtimeResult.runtime_min, runtime_max: runtimeResult.runtime_max,
       genres: genreResult.genres,
+      countryVariants: countryResult.countryVariants,
     },
     semantic_query: normalized.trim(),
   };
 }
 
-module.exports = { parseStructuredQuery, normalizeQuery, extractYears, extractRuntime, extractGenres };
+module.exports = { parseStructuredQuery, normalizeQuery, extractYears, extractRuntime, extractGenres, extractCountries, COUNTRY_WORDS };

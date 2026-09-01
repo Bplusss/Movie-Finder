@@ -47,8 +47,9 @@ function loadCatalog(filePath = DEFAULT_PATH) {
     }
   }
 
+  const sorted = sortByWikidataId(data);
   return {
-    movies: data,
+    movies: sorted,
     stats: {
       total: data.length,
       duplicateWikidataIds: duplicates,
@@ -63,4 +64,18 @@ function indexByWikidataId(movies) {
   return new Map(movies.map(m => [m.wikidata_id, m]));
 }
 
-module.exports = { loadCatalog, indexByWikidataId, isProfileStructurallyValid, DEFAULT_PATH };
+/**
+ * Tri deterministe par wikidata_id -- fonction UNIQUE reutilisee a l'identique
+ * par toutes les sources de catalogue (JSON ici, Supabase dans
+ * load-catalog-from-supabase.js) pour garantir un ordre de depart strictement
+ * identique quelle que soit la source. Necessaire car movie-search-v3.js
+ * utilise un tri STABLE : a score egal (frequent sur les requetes sans texte
+ * semantique discriminant), l'ordre d'entree du tableau determine le
+ * classement final. Sans cet ordre commun, deux sources de donnees pourtant
+ * identiques peuvent produire des classements differents sur ces requetes.
+ */
+function sortByWikidataId(movies) {
+  return [...movies].sort((a, b) => (a.wikidata_id < b.wikidata_id ? -1 : a.wikidata_id > b.wikidata_id ? 1 : 0));
+}
+
+module.exports = { loadCatalog, indexByWikidataId, isProfileStructurallyValid, sortByWikidataId, DEFAULT_PATH };
