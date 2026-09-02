@@ -39,6 +39,11 @@
   .btn-find{background:var(--gold);color:#1a1204;border:none;border-radius:14px;padding:0 22px;font-weight:600;font-size:14px;white-space:nowrap;transition:.15s;}
   .btn-find:hover{background:var(--gold-soft);}
 
+  .quick-chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:640px;margin:14px auto 0;}
+  .quick-chip{background:var(--bg-elev);border:1px solid var(--stroke);border-radius:999px;padding:7px 14px;font-size:13px;color:var(--text-dim);cursor:pointer;transition:.15s;}
+  .quick-chip:hover{border-color:var(--gold);}
+  .quick-chip.active{background:var(--gold);border-color:var(--gold);color:#1a1204;font-weight:600;}
+
   .understood{max-width:640px;margin:0 auto 20px;text-align:center;}
   .understood-label{color:var(--text-faint);font-size:12px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;}
   .understood-chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;}
@@ -112,11 +117,12 @@
 
   <div class="hero">
     <h1>Tu sais ce que tu veux regarder.<br>Tu ne sais juste pas quoi.</h1>
-    <p class="sub">Décris ton envie en une phrase — le moteur V3 cherche dans les 1018 films.</p>
+    <p class="sub">Décris ton envie en une phrase — Movie Finder te propose 3 films, pas 50.</p>
     <div class="search-wrap">
-      <textarea id="searchBox" placeholder="ex: un film qui se passe dans l'espace"></textarea>
+      <textarea id="searchBox" placeholder="Décris le film que tu veux regarder..."></textarea>
       <button class="btn-find" id="searchBtn">Trouver mon film</button>
     </div>
+    <div class="quick-chips" id="quickChips"></div>
   </div>
 
   <div id="status" style="text-align:center;color:var(--text-dim);"></div>
@@ -153,6 +159,68 @@ let modalFilm = null;
 let starsRel = 0;
 let starsFilm = 0;
 let pickedReasons = new Set();
+
+// Chips rapides -- UNIQUEMENT des mots reellement reconnus par le moteur
+// (genres : semantic-search-engine.js GENRE_WORDS ; ambiance :
+// movie-search-v3.js AMBIANCE_LEXICON ; pays :
+// structured-query-parser.js COUNTRY_WORDS). Tokens simples (pas de phrase
+// a plusieurs mots) pour un ajout/retrait fiable dans le champ de recherche.
+const QUICK_CHIP_POOL = [
+  { emoji: "🎭", label: "Comédie", word: "comédie" },
+  { emoji: "🔪", label: "Thriller", word: "thriller" },
+  { emoji: "💥", label: "Action", word: "action" },
+  { emoji: "🎬", label: "Drame", word: "drame" },
+  { emoji: "🚀", label: "Science-fiction", word: "science-fiction" },
+  { emoji: "👻", label: "Horreur", word: "horreur" },
+  { emoji: "🕵️", label: "Policier", word: "policier" },
+  { emoji: "🗺️", label: "Aventure", word: "aventure" },
+  { emoji: "🐉", label: "Fantastique", word: "fantastique" },
+  { emoji: "😱", label: "Qui fait peur", word: "peur" },
+  { emoji: "😂", label: "Qui fait rire", word: "rire" },
+  { emoji: "☀️", label: "Feel-good", word: "feel-good" },
+  { emoji: "🪶", label: "Léger", word: "léger" },
+  { emoji: "😢", label: "Triste", word: "triste" },
+  { emoji: "🔥", label: "Chaleureux", word: "chaleureux" },
+  { emoji: "🕯️", label: "Réconfortant", word: "réconfortant" },
+  { emoji: "🌫️", label: "Mystérieux", word: "mystérieux" },
+  { emoji: "🌑", label: "Sombre", word: "sombre" },
+  { emoji: "🇫🇷", label: "Français", word: "français" },
+  { emoji: "🇺🇸", label: "Américain", word: "américain" },
+  { emoji: "🇬🇧", label: "Britannique", word: "britannique" },
+  { emoji: "🇩🇪", label: "Allemand", word: "allemand" },
+  { emoji: "🇮🇹", label: "Italien", word: "italien" },
+  { emoji: "🇯🇵", label: "Japonais", word: "japonais" },
+  { emoji: "🇪🇸", label: "Espagnol", word: "espagnol" },
+  { emoji: "🇰🇷", label: "Coréen", word: "coréen" },
+];
+
+function shuffledSample(arr, n) {
+  const copy = [...arr];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy.slice(0, n);
+}
+
+function renderQuickChips() {
+  const chosen = shuffledSample(QUICK_CHIP_POOL, 6);
+  const el = document.getElementById("quickChips");
+  el.innerHTML = chosen.map(c => `<span class="quick-chip" data-word="${c.word}">${c.emoji} ${c.label}</span>`).join("");
+  el.querySelectorAll(".quick-chip").forEach(chip => {
+    chip.addEventListener("click", () => {
+      const word = chip.dataset.word;
+      const box = document.getElementById("searchBox");
+      const active = chip.classList.toggle("active");
+      if (active) {
+        box.value = box.value.trim() ? box.value.trim() + " " + word : word;
+      } else {
+        box.value = box.value.split(" ").filter(w => w.toLowerCase() !== word.toLowerCase()).join(" ").trim();
+      }
+    });
+  });
+}
+renderQuickChips();
 
 function colorFor(title) {
   let hash = 0;
