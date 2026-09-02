@@ -73,13 +73,10 @@ async function ensureLoaded() {
 }
 
 /** Resume succinct depuis les VRAIES donnees deja presentes — aucune generation, aucun Ollama. */
-function shortSynopsis(movie, maxLen = 220) {
+function shortSynopsis(movie) {
   const text = movie.synopsisOnlyText || movie.introText || "";
   if (!text) return "(résumé non disponible dans le catalogue)";
-  if (text.length <= maxLen) return text;
-  const cut = text.slice(0, maxLen);
-  const lastPeriod = cut.lastIndexOf(". ");
-  return (lastPeriod > maxLen * 0.5 ? cut.slice(0, lastPeriod + 1) : cut + "…").trim();
+  return text.trim(); // synopsis complet, jamais coupe
 }
 
 function toClientShape(movie, rank) {
