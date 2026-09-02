@@ -73,10 +73,21 @@ async function ensureLoaded() {
 }
 
 /** Resume succinct depuis les VRAIES donnees deja presentes — aucune generation, aucun Ollama. */
-function shortSynopsis(movie) {
+function shortSynopsis(movie, maxSentences = 3, maxChars = 320) {
   const text = movie.synopsisOnlyText || movie.introText || "";
   if (!text) return "(résumé non disponible dans le catalogue)";
-  return text.trim(); // synopsis complet, jamais coupe
+  // Coupe UNIQUEMENT a la fin d'une phrase complete (jamais au milieu), et
+  // s'arrete au premier des deux seuils atteints (phrases OU longueur) --
+  // evite qu'un texte source a phrases courtes (beaucoup de "." rapproches)
+  // produise un resume bien trop long malgre la limite de 3 phrases.
+  const sentences = text.trim().split(/(?<=[.!?])\s+/);
+  let result = "";
+  for (let i = 0; i < Math.min(maxSentences, sentences.length); i++) {
+    const next = result ? result + " " + sentences[i] : sentences[i];
+    if (result && next.length > maxChars) break; // garde au moins 1 phrase, meme si elle depasse seule
+    result = next;
+  }
+  return result.trim();
 }
 
 function toClientShape(movie, rank) {
